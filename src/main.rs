@@ -4,6 +4,7 @@
 //! Created by Egon and Aibotix.
 
 mod buffer;
+mod config;
 mod cursor;
 mod buffer_manager;
 mod editor;

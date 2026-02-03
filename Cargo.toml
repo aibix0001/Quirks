@@ -10,6 +10,7 @@ repository = "https://github.com/aibix0001/Quirks"
 [dependencies]
 anyhow = "1.0"
 crossterm = "0.29"
+dirs = "5.0"
 ratatui = "0.30"
 regex = "1.12.3"
 ropey = "1.6"
