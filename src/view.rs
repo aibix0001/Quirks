@@ -30,6 +30,11 @@ pub fn render(frame: &mut Frame, editor: &Editor) {
     render_status_line(frame, editor, chunks[1]);
     render_command_line(frame, editor, chunks[2]);
 
+    // Render help overlay if in help mode
+    if editor.mode() == Mode::Help {
+        render_help_overlay(frame);
+    }
+
     // Position cursor
     let (cursor_x, cursor_y) = calculate_cursor_position(editor, chunks[0]);
     frame.set_cursor_position((cursor_x, cursor_y));
@@ -119,6 +124,7 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         Mode::Command => Style::default().bg(Color::Yellow).fg(Color::Black),
         Mode::Search => Style::default().bg(Color::Magenta).fg(Color::White),
         Mode::Visual | Mode::VisualLine | Mode::VisualBlock => Style::default().bg(Color::Cyan).fg(Color::Black),
+        Mode::Help => Style::default().bg(Color::DarkGray).fg(Color::White),
     };
     let mode_span = Span::styled(format!(" {} ", mode.display()), mode_style);
 
@@ -185,6 +191,69 @@ fn render_command_line(frame: &mut Frame, editor: &Editor, area: Rect) {
 
     let widget = Paragraph::new(content);
     frame.render_widget(widget, area);
+}
+
+/// Render help overlay
+fn render_help_overlay(frame: &mut Frame) {
+    let help_text = vec![
+        "",
+        "  ╔══════════════════════════════════════════════════════════════╗",
+        "  ║                      QUIRKS HELP                             ║",
+        "  ╠══════════════════════════════════════════════════════════════╣",
+        "  ║  NAVIGATION                                                  ║",
+        "  ║    h/j/k/l     Move left/down/up/right                       ║",
+        "  ║    w/b/e       Word forward/backward/end                     ║",
+        "  ║    0/$         Line start/end                                ║",
+        "  ║    gg/G        Buffer start/end                              ║",
+        "  ║    gt/gT       Next/previous buffer                          ║",
+        "  ║                                                              ║",
+        "  ║  EDITING                                                     ║",
+        "  ║    i/a         Insert before/after cursor                    ║",
+        "  ║    I/A         Insert at line start/end                      ║",
+        "  ║    o/O         New line below/above                          ║",
+        "  ║    x           Delete character                              ║",
+        "  ║    dd          Delete line                                   ║",
+        "  ║    yy          Yank (copy) line                              ║",
+        "  ║    p/P         Paste after/before                            ║",
+        "  ║    u/Ctrl+R    Undo/Redo                                     ║",
+        "  ║                                                              ║",
+        "  ║  SEARCH                                                      ║",
+        "  ║    /pattern    Search forward                                ║",
+        "  ║    ?pattern    Search backward                               ║",
+        "  ║    n/N         Next/previous match                           ║",
+        "  ║                                                              ║",
+        "  ║  COMMANDS                                                    ║",
+        "  ║    :w          Save file                                     ║",
+        "  ║    :q          Quit (if saved)                               ║",
+        "  ║    :wq         Save and quit                                 ║",
+        "  ║    :q!         Force quit                                    ║",
+        "  ║    :e <file>   Open file                                     ║",
+        "  ║    :help       Show this help                                ║",
+        "  ║                                                              ║",
+        "  ║           Press q, Esc, or Enter to close                    ║",
+        "  ╚══════════════════════════════════════════════════════════════╝",
+        "",
+    ];
+
+    let area = frame.area();
+    let help_height = help_text.len() as u16;
+    let help_width = 68;
+    
+    let x = area.width.saturating_sub(help_width) / 2;
+    let y = area.height.saturating_sub(help_height) / 2;
+    
+    let help_area = Rect::new(x, y, help_width, help_height);
+    
+    // Clear background
+    let block = ratatui::widgets::Block::default()
+        .style(Style::default().bg(Color::Black));
+    frame.render_widget(block, help_area);
+    
+    // Render help text
+    let text: Vec<Line> = help_text.iter().map(|s| Line::from(*s)).collect();
+    let paragraph = Paragraph::new(text)
+        .style(Style::default().fg(Color::White).bg(Color::Black));
+    frame.render_widget(paragraph, help_area);
 }
 
 /// Apply all highlighting (syntax, search, selection) to a line of text

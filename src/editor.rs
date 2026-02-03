@@ -114,6 +114,7 @@ impl Editor {
             Mode::Command => self.handle_command_mode(key),
             Mode::Search => self.handle_search_mode(key),
             Mode::Visual | Mode::VisualLine | Mode::VisualBlock => self.handle_visual_mode(key),
+            Mode::Help => self.handle_help_mode(key),
         }
     }
 
@@ -792,9 +793,7 @@ impl Editor {
                 self.search.clear_highlight();
             }
             "help" | "h" | "?" => {
-                self.message = Some(
-                    "Commands: :w :q :wq :q! :e<file> :b<N> :bd :ls :help | Keys: hjkl wbe 0$ gg/G dd yy p P i a o O x u ^R / ? n N v V gt gT".to_string()
-                );
+                self.mode = Mode::Help;
             }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
@@ -1063,6 +1062,17 @@ impl Editor {
         };
         self.registers.yank(register_content);
         self.message = Some(format!("{} line(s) yanked", line_count));
+    }
+
+    /// Handle keys in help mode
+    fn handle_help_mode(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Enter => {
+                self.mode = Mode::Normal;
+            }
+            _ => {}
+        }
+        false
     }
 
     /// Delete the current selection

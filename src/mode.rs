@@ -18,6 +18,8 @@ pub enum Mode {
     VisualLine,
     /// Visual Block mode - block/column selection (Ctrl+V)
     VisualBlock,
+    /// Help mode - shows help overlay
+    Help,
 }
 
 impl Mode {
@@ -31,6 +33,7 @@ impl Mode {
             Mode::Visual => "VISUAL",
             Mode::VisualLine => "V-LINE",
             Mode::VisualBlock => "V-BLOCK",
+            Mode::Help => "HELP",
         }
     }
 
@@ -42,6 +45,7 @@ impl Mode {
             Mode::Command => CursorStyle::Block,
             Mode::Search => CursorStyle::Block,
             Mode::Visual | Mode::VisualLine | Mode::VisualBlock => CursorStyle::Block,
+            Mode::Help => CursorStyle::Block,
         }
     }
 
