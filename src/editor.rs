@@ -868,6 +868,12 @@ impl Editor {
             "version" | "ver" => {
                 self.message = Some("Quirks v0.3.1 - A modal text editor".to_string());
             }
+            "pwd" => {
+                match std::env::current_dir() {
+                    Ok(path) => self.message = Some(path.display().to_string()),
+                    Err(e) => self.message = Some(format!("Error: {}", e)),
+                }
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
