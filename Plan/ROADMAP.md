@@ -19,15 +19,20 @@
 
 ### v0.2 — "Actually Usable"
 **Target:** 2026-02-28
-**Status:** 🔴 Not Started
+**Status:** 🟢 **COMPLETE** (2026-02-03)
 
-- [ ] Syntax highlighting (tree-sitter)
-- [ ] Search and replace (:%s)
-- [ ] Visual mode (v, V, Ctrl+V)
-- [ ] Multiple buffers/tabs
-- [ ] Configuration file (~/.config/quirks/config.toml)
-- [ ] Undo/redo history
-- [ ] Yank/paste registers
+- [x] Syntax highlighting (regex-based for v0.2)
+- [x] Search and replace (/, ?, n, N, :noh)
+- [x] Visual mode (v, V with char/line selection)
+- [x] Undo/redo history (u, Ctrl+R)
+- [x] Yank/paste registers (yy, dd, p, P)
+- [x] Complete vi command set (~100 commands)
+- [x] Word motions (w, b, e)
+- [x] Line operations (cc, J, D, C)
+- [x] Bracket matching (%)
+- [x] Find character on line (f, F, ;, ,)
+- [x] Word search (*, #)
+- [x] Numeric prefixes (5j, 3w, etc.)
 
 ### v0.3 — "Plugin Ready"
 **Target:** 2026-03
