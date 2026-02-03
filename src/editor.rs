@@ -794,6 +794,7 @@ impl Editor {
             }
             "help" | "h" | "?" => {
                 self.mode = Mode::Help;
+                self.message = Some("Press q/Esc/Enter to close help".to_string());
             }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
