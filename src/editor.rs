@@ -966,6 +966,22 @@ impl Editor {
                 // Color scheme (placeholder)
                 self.message = Some("Color schemes not yet implemented".to_string());
             }
+            "ruler" => {
+                // Show/hide ruler (placeholder)
+                self.message = Some("Ruler is always shown".to_string());
+            }
+            "history" => {
+                // Show undo history count
+                self.message = Some(format!(
+                    "Undo: {} | Redo: {}",
+                    self.buffer.undo_count(),
+                    self.buffer.redo_count()
+                ));
+            }
+            "verbose" => {
+                // Verbose mode toggle (placeholder)
+                self.message = Some("Verbose mode not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(

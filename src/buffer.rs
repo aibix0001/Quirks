@@ -289,6 +289,16 @@ impl Buffer {
         self.history.can_redo()
     }
 
+    /// Get undo history count
+    pub fn undo_count(&self) -> usize {
+        self.history.undo_count()
+    }
+
+    /// Get redo history count
+    pub fn redo_count(&self) -> usize {
+        self.history.redo_count()
+    }
+
     /// Get character at position (line, col)
     pub fn char_at(&self, line: usize, col: usize) -> Option<char> {
         if line >= self.line_count() {
