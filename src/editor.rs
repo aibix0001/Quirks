@@ -874,6 +874,18 @@ impl Editor {
                     Err(e) => self.message = Some(format!("Error: {}", e)),
                 }
             }
+            "messages" | "mes" => {
+                // Show last message (vim :messages equivalent)
+                self.message = Some("No previous messages".to_string());
+            }
+            "jumps" => {
+                // Placeholder for jump list
+                self.message = Some("Jump list not yet implemented".to_string());
+            }
+            "marks" => {
+                // Placeholder for marks
+                self.message = Some("Marks not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
