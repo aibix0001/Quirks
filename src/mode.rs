@@ -55,6 +55,34 @@ impl Mode {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mode_display() {
+        assert_eq!(Mode::Normal.display(), "NORMAL");
+        assert_eq!(Mode::Insert.display(), "INSERT");
+        assert_eq!(Mode::Command.display(), "COMMAND");
+        assert_eq!(Mode::Visual.display(), "VISUAL");
+        assert_eq!(Mode::Help.display(), "HELP");
+    }
+
+    #[test]
+    fn test_mode_is_visual() {
+        assert!(!Mode::Normal.is_visual());
+        assert!(!Mode::Insert.is_visual());
+        assert!(Mode::Visual.is_visual());
+        assert!(Mode::VisualLine.is_visual());
+        assert!(Mode::VisualBlock.is_visual());
+    }
+
+    #[test]
+    fn test_mode_default() {
+        assert_eq!(Mode::default(), Mode::Normal);
+    }
+}
+
 /// Cursor visual style
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorStyle {
