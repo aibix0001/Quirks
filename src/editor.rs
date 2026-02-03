@@ -785,12 +785,32 @@ impl Editor {
                     self.message = Some("Written".to_string());
                 }
             }
-            "wq" | "x" => {
+            "wq" | "x" | "wq!" => {
                 if let Err(e) = self.buffer.save() {
                     self.message = Some(format!("Error saving: {}", e));
                 } else {
                     return true;
                 }
+            }
+            "wa" => {
+                // Save all buffers
+                if let Err(e) = self.buffer.save() {
+                    self.message = Some(format!("Error saving: {}", e));
+                } else {
+                    self.message = Some("All buffers saved".to_string());
+                }
+            }
+            "qa" | "qall" => {
+                // Quit all (if no unsaved changes)
+                if self.buffer.is_modified() {
+                    self.message = Some("Unsaved changes! Use :qa! to force quit".to_string());
+                } else {
+                    return true;
+                }
+            }
+            "qa!" | "qall!" => {
+                // Force quit all
+                return true;
             }
             _ if cmd.starts_with("w ") => {
                 let path = cmd.strip_prefix("w ").unwrap().trim();
