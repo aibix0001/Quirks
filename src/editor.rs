@@ -9,6 +9,7 @@ use crate::selection::{Selection, VisualMode};
 use crate::syntax::Highlighter;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use regex;
 
 /// The main editor state
 pub struct Editor {
@@ -176,6 +177,26 @@ impl Editor {
                 // Repeat last find in opposite direction
                 if let Some((c, forward)) = self.last_find {
                     self.find_char_on_line(c, !forward);
+                }
+            }
+            
+            // Word search (* and #)
+            KeyCode::Char('*') | KeyCode::Char('#') => {
+                if let Some(word) = self.get_word_under_cursor() {
+                    let forward = key.code == KeyCode::Char('*');
+                    self.search.start(if forward { SearchDirection::Forward } else { SearchDirection::Backward });
+                    let lines: Vec<String> = (0..self.buffer.line_count())
+                        .map(|i| self.buffer.line(i))
+                        .collect();
+                    self.search.set_pattern(&format!("\\b{}\\b", regex::escape(&word)));
+                    self.search.execute(&lines, self.cursor.line, self.cursor.col);
+                    
+                    if let Some(m) = self.search.current() {
+                        self.cursor.line = m.line;
+                        self.cursor.col = m.start_col;
+                        self.ensure_cursor_visible();
+                        self.message = Some(format!("Found: {}", word));
+                    }
                 }
             }
             
@@ -911,6 +932,35 @@ impl Editor {
         
         self.cursor.clamp(&self.buffer);
         self.message = Some("Deleted".to_string());
+    }
+
+    /// Get the word under the cursor
+    fn get_word_under_cursor(&self) -> Option<String> {
+        let line = self.buffer.line(self.cursor.line);
+        let chars: Vec<char> = line.chars().collect();
+        
+        if self.cursor.col >= chars.len() {
+            return None;
+        }
+        
+        let current_char = chars[self.cursor.col];
+        if !current_char.is_alphanumeric() && current_char != '_' {
+            return None;
+        }
+        
+        // Find word start
+        let mut start = self.cursor.col;
+        while start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '_') {
+            start -= 1;
+        }
+        
+        // Find word end
+        let mut end = self.cursor.col + 1;
+        while end < chars.len() && (chars[end].is_alphanumeric() || chars[end] == '_') {
+            end += 1;
+        }
+        
+        Some(chars[start..end].iter().collect())
     }
 
     /// Find and move to character on current line
