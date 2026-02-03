@@ -238,4 +238,61 @@ impl Buffer {
     pub fn can_redo(&self) -> bool {
         self.history.can_redo()
     }
+
+    /// Get character at position (line, col)
+    pub fn char_at(&self, line: usize, col: usize) -> Option<char> {
+        if line >= self.line_count() {
+            return None;
+        }
+        let line_start = self.rope.line_to_char(line);
+        let line_text = self.rope.line(line);
+        let graphemes: Vec<&str> = line_text.to_string().graphemes(true).collect();
+        if col >= graphemes.len() {
+            return None;
+        }
+        graphemes.get(col).and_then(|g| g.chars().next())
+    }
+
+    /// Delete an entire line
+    pub fn delete_line(&mut self, line: usize) {
+        if line >= self.line_count() {
+            return;
+        }
+        let start = self.rope.line_to_char(line);
+        let end = if line + 1 < self.line_count() {
+            self.rope.line_to_char(line + 1)
+        } else {
+            self.rope.len_chars()
+        };
+        if start < end {
+            self.rope.remove(start..end);
+            self.modified = true;
+        }
+    }
+
+    /// Insert text as a new line below the given line
+    pub fn insert_line_below(&mut self, line: usize, text: &str) {
+        let insert_pos = if line + 1 < self.line_count() {
+            self.rope.line_to_char(line + 1)
+        } else {
+            // At end of file, ensure there's a newline first
+            let len = self.rope.len_chars();
+            if len > 0 {
+                let last_char = self.rope.char(len - 1);
+                if last_char != '\n' {
+                    self.rope.insert_char(len, '\n');
+                }
+            }
+            self.rope.len_chars()
+        };
+        self.rope.insert(insert_pos, text);
+        self.modified = true;
+    }
+
+    /// Insert text as a new line above the given line
+    pub fn insert_line_above(&mut self, line: usize, text: &str) {
+        let insert_pos = self.rope.line_to_char(line);
+        self.rope.insert(insert_pos, text);
+        self.modified = true;
+    }
 }

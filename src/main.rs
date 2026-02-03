@@ -8,6 +8,7 @@ mod cursor;
 mod editor;
 mod history;
 mod mode;
+mod register;
 mod search;
 mod syntax;
 mod view;

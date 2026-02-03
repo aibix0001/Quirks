@@ -3,6 +3,7 @@
 use crate::buffer::Buffer;
 use crate::cursor::Cursor;
 use crate::mode::Mode;
+use crate::register::{Registers, RegisterContent};
 use crate::search::{Search, SearchDirection};
 use crate::syntax::Highlighter;
 use anyhow::Result;
@@ -28,6 +29,10 @@ pub struct Editor {
     highlighter: Highlighter,
     /// Search state
     search: Search,
+    /// Vim-style registers for yank/paste
+    registers: Registers,
+    /// Pending operator (for commands like dd, yy)
+    pending_op: Option<char>,
 }
 
 impl Default for Editor {
@@ -48,6 +53,8 @@ impl Editor {
             viewport_height: 24, // Default, updated on resize
             highlighter: Highlighter::new(),
             search: Search::new(),
+            registers: Registers::new(),
+            pending_op: None,
         }
     }
 
@@ -138,8 +145,100 @@ impl Editor {
             // Deletion
             KeyCode::Char('x') => {
                 self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                // Yank the character before deleting
+                if let Some(ch) = self.buffer.char_at(self.cursor.line, self.cursor.col) {
+                    self.registers.delete(RegisterContent::Chars(ch.to_string()));
+                }
                 self.buffer.delete_grapheme(self.cursor.line, self.cursor.col);
                 self.cursor.clamp(&self.buffer);
+            }
+            
+            // Yank line (yy)
+            KeyCode::Char('y') => {
+                if self.pending_op == Some('y') {
+                    // yy - yank current line
+                    let line = self.buffer.line(self.cursor.line);
+                    let content = if line.ends_with('\n') {
+                        line
+                    } else {
+                        format!("{}\n", line)
+                    };
+                    self.registers.yank(RegisterContent::Lines(content));
+                    self.message = Some("1 line yanked".to_string());
+                    self.pending_op = None;
+                } else {
+                    self.pending_op = Some('y');
+                }
+            }
+            
+            // Delete line (dd)
+            KeyCode::Char('d') => {
+                if self.pending_op == Some('d') {
+                    // dd - delete current line
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    let line = self.buffer.line(self.cursor.line);
+                    let content = if line.ends_with('\n') {
+                        line
+                    } else {
+                        format!("{}\n", line)
+                    };
+                    self.registers.delete(RegisterContent::Lines(content));
+                    self.buffer.delete_line(self.cursor.line);
+                    self.cursor.clamp(&self.buffer);
+                    self.ensure_cursor_visible();
+                    self.message = Some("1 line deleted".to_string());
+                    self.pending_op = None;
+                } else {
+                    self.pending_op = Some('d');
+                }
+            }
+            
+            // Paste after (p)
+            KeyCode::Char('p') => {
+                if let Some(content) = self.registers.get_unnamed() {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    match content {
+                        RegisterContent::Lines(text) => {
+                            // Paste below current line
+                            self.buffer.insert_line_below(self.cursor.line, text);
+                            self.cursor.line += 1;
+                            self.cursor.col = 0;
+                        }
+                        RegisterContent::Chars(text) => {
+                            // Paste after cursor
+                            let pos = self.cursor.byte_offset(&self.buffer);
+                            self.buffer.insert(pos + 1, text);
+                            self.cursor.col += 1;
+                        }
+                        RegisterContent::Block(_) => {
+                            // TODO: block paste
+                        }
+                    }
+                    self.ensure_cursor_visible();
+                }
+            }
+            
+            // Paste before (P)
+            KeyCode::Char('P') => {
+                if let Some(content) = self.registers.get_unnamed() {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    match content {
+                        RegisterContent::Lines(text) => {
+                            // Paste above current line
+                            self.buffer.insert_line_above(self.cursor.line, text);
+                            self.cursor.col = 0;
+                        }
+                        RegisterContent::Chars(text) => {
+                            // Paste before cursor
+                            let pos = self.cursor.byte_offset(&self.buffer);
+                            self.buffer.insert(pos, text);
+                        }
+                        RegisterContent::Block(_) => {
+                            // TODO: block paste
+                        }
+                    }
+                    self.ensure_cursor_visible();
+                }
             }
             
             // Command mode
