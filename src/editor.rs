@@ -135,6 +135,15 @@ impl Editor {
             KeyCode::Char('g') => self.cursor.move_to_buffer_start(),
             KeyCode::Char('G') => self.cursor.move_to_buffer_end(&self.buffer),
             
+            // Match bracket (%)
+            KeyCode::Char('%') => {
+                if let Some((line, col)) = self.find_matching_bracket() {
+                    self.cursor.line = line;
+                    self.cursor.col = col;
+                    self.ensure_cursor_visible();
+                }
+            }
+            
             // Word motions
             KeyCode::Char('w') => self.cursor.move_word_forward(&self.buffer),
             KeyCode::Char('b') => self.cursor.move_word_backward(&self.buffer),
@@ -872,6 +881,62 @@ impl Editor {
         
         self.cursor.clamp(&self.buffer);
         self.message = Some("Deleted".to_string());
+    }
+
+    /// Find the matching bracket for the character under cursor
+    fn find_matching_bracket(&self) -> Option<(usize, usize)> {
+        let current_char = self.buffer.char_at(self.cursor.line, self.cursor.col)?;
+        
+        let (target, forward) = match current_char {
+            '(' => (')', true),
+            ')' => ('(', false),
+            '[' => (']', true),
+            ']' => ('[', false),
+            '{' => ('}', true),
+            '}' => ('{', false),
+            '<' => ('>', true),
+            '>' => ('<', false),
+            _ => return None,
+        };
+        
+        let mut depth = 1;
+        let mut line = self.cursor.line;
+        let mut col = self.cursor.col;
+        
+        loop {
+            if forward {
+                col += 1;
+                let line_len = self.buffer.line_len(line);
+                if col >= line_len {
+                    line += 1;
+                    if line >= self.buffer.line_count() {
+                        return None;
+                    }
+                    col = 0;
+                }
+            } else {
+                if col == 0 {
+                    if line == 0 {
+                        return None;
+                    }
+                    line -= 1;
+                    col = self.buffer.line_len(line).saturating_sub(1);
+                } else {
+                    col -= 1;
+                }
+            }
+            
+            if let Some(c) = self.buffer.char_at(line, col) {
+                if c == current_char {
+                    depth += 1;
+                } else if c == target {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some((line, col));
+                    }
+                }
+            }
+        }
     }
 
     /// Ensure cursor is visible by adjusting scroll offset
