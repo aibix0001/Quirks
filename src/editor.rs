@@ -95,6 +95,24 @@ impl Editor {
 
     /// Handle keys in normal mode
     fn handle_normal_mode(&mut self, key: KeyEvent) -> bool {
+        // Handle pending replace
+        if self.pending_op == Some('r') {
+            if let KeyCode::Char(c) = key.code {
+                if !key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    let pos = self.cursor.byte_offset(&self.buffer);
+                    // Delete current char and insert replacement
+                    let line_len = self.buffer.line_len(self.cursor.line);
+                    if self.cursor.col < line_len {
+                        self.buffer.delete(pos, pos + 1);
+                        self.buffer.insert(pos, &c.to_string());
+                    }
+                }
+            }
+            self.pending_op = None;
+            return false;
+        }
+
         match key.code {
             // Movement
             KeyCode::Char('h') | KeyCode::Left => self.cursor.move_left(&self.buffer),
@@ -242,6 +260,67 @@ impl Editor {
                     // Move cursor to join point
                     self.cursor.col = current_line_len;
                 }
+            }
+            
+            // Delete to end of line (D)
+            KeyCode::Char('D') => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                let line = self.buffer.line(self.cursor.line);
+                let chars: Vec<char> = line.chars().collect();
+                if self.cursor.col < chars.len() {
+                    let deleted: String = chars[self.cursor.col..].iter()
+                        .collect::<String>()
+                        .trim_end_matches('\n')
+                        .to_string();
+                    if !deleted.is_empty() {
+                        self.registers.delete(RegisterContent::Chars(deleted));
+                    }
+                    // Delete from cursor to end of line (keep newline)
+                    let start = self.buffer.line_to_byte(self.cursor.line) 
+                        + self.buffer.col_to_byte(self.cursor.line, self.cursor.col);
+                    let end = if self.cursor.line + 1 < self.buffer.line_count() {
+                        self.buffer.line_to_byte(self.cursor.line + 1) - 1
+                    } else {
+                        self.buffer.len()
+                    };
+                    if start < end {
+                        self.buffer.delete(start, end);
+                    }
+                }
+                self.cursor.clamp(&self.buffer);
+            }
+            
+            // Change to end of line (C)
+            KeyCode::Char('C') => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                let line = self.buffer.line(self.cursor.line);
+                let chars: Vec<char> = line.chars().collect();
+                if self.cursor.col < chars.len() {
+                    let deleted: String = chars[self.cursor.col..].iter()
+                        .collect::<String>()
+                        .trim_end_matches('\n')
+                        .to_string();
+                    if !deleted.is_empty() {
+                        self.registers.delete(RegisterContent::Chars(deleted));
+                    }
+                    let start = self.buffer.line_to_byte(self.cursor.line) 
+                        + self.buffer.col_to_byte(self.cursor.line, self.cursor.col);
+                    let end = if self.cursor.line + 1 < self.buffer.line_count() {
+                        self.buffer.line_to_byte(self.cursor.line + 1) - 1
+                    } else {
+                        self.buffer.len()
+                    };
+                    if start < end {
+                        self.buffer.delete(start, end);
+                    }
+                }
+                self.mode = Mode::Insert;
+            }
+            
+            // Replace character (r)
+            KeyCode::Char('r') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                // Set pending replace mode - next char will replace current
+                self.pending_op = Some('r');
             }
             
             // Paste after (p)
