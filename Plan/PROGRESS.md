@@ -111,6 +111,42 @@ Multi-buffer editing with tab navigation fully functional.
 
 ---
 
+### Session 4 — v0.3.1 Polish & Bug Fixes (Night)
+
+**Participants:** Aibotix
+
+**Bug Fixes:**
+- ✅ Fixed umlaut/UTF-8 crash (Issue #1)
+  - Root cause: Ropey API expects char indices, not byte indices
+  - Fixed insert_char(), insert(), delete() to convert byte→char
+  - Added bounds checking for end-of-buffer insertion
+- ✅ Fixed syntax highlighting with UTF-8 characters
+  - Replaced byte-based string slicing with char-based operations
+
+**Features Added:**
+- ✅ Help overlay (`:help`, `:h`, `:?`)
+  - Full-screen centered help box with keybindings
+  - Press q/Esc/Enter to close
+- ✅ Configuration system (`config.rs`)
+  - Loads from ~/.quirksrc or ~/.config/quirks/config.toml
+  - Settings: tab_width, line_numbers, syntax_highlighting, etc.
+- ✅ Improved `:ls` command
+  - Shows actual buffer list with indices
+  - Marks current buffer with [N]
+- ✅ Added `:version` command
+- ✅ Added `:set` command (shows current settings)
+- ✅ Performance monitoring module (`perf.rs`)
+
+**Tests:**
+- 23 unit tests passing
+- Added tests for UTF-8/umlaut handling
+- Added tests for BufferManager, Cursor, Config
+
+**v0.3.1 Status:** ✅ **COMPLETE**
+All major bugs fixed, editor fully functional with German umlauts.
+
+---
+
 ## Build Status
 
 ```bash
