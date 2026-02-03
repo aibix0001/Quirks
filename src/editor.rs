@@ -791,6 +791,11 @@ impl Editor {
             "noh" | "nohlsearch" => {
                 self.search.clear_highlight();
             }
+            "help" | "h" | "?" => {
+                self.message = Some(
+                    "Commands: :w :q :wq :q! :e<file> :b<N> :bd :ls :help | Keys: hjkl wbe 0$ gg/G dd yy p P i a o O x u ^R / ? n N v V gt gT".to_string()
+                );
+            }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
                 match self.buffer_manager.open_file(path) {
