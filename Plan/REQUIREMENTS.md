@@ -1,81 +1,144 @@
 # Development Requirements
 
-## Aibotix's Machine
+## Build Environment
 
-### Already Installed ✅
+### Required: Rust Toolchain
+```bash
+# Install via rustup (recommended)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Or via package manager
+# Debian/Ubuntu: sudo apt install rustc cargo
+# Arch: sudo pacman -S rust
+# macOS: brew install rust
+```
+
+**Minimum Version:** Rust 1.70+ (for edition 2021 features)
+
+### Verify Installation
+```bash
+rustc --version    # Should show 1.70+
+cargo --version    # Should be included with rustup
+```
+
+---
+
+## Team Machines
+
+### Aibotix's Machine ✅
 - Rust 1.93.0 (via rustup)
 - Cargo
 - Git
 - SSH access to GitHub
 
-### Would Be Nice 🔧
-- `tree-sitter` CLI — for syntax highlighting development
-- `just` — command runner (like make, but better)
-- `bacon` — background Rust compiler for live feedback
-- `cargo-watch` — auto-rebuild on file changes
+### Egon's Machine
+- Git ✅
+- SSH access to GitHub ✅
+- Rust ❌ (needs installation)
+
+---
+
+## Dependencies (handled by Cargo)
+
+Defined in `Cargo.toml`, installed automatically on `cargo build`:
+
+| Crate | Version | Purpose |
+|-------|---------|---------|
+| `ropey` | 1.6 | Rope data structure for text buffer |
+| `crossterm` | 0.27 | Terminal manipulation |
+| `ratatui` | 0.26 | TUI framework |
+| `unicode-segmentation` | 1.10 | Grapheme cluster handling |
+| `anyhow` | 1.0 | Error handling |
+
+---
+
+## Build Commands
 
 ```bash
-# Install commands
-cargo install tree-sitter-cli
-cargo install just
-cargo install bacon
-cargo install cargo-watch
+# Development build
+cargo build
+
+# Release build (optimized)
+cargo build --release
+
+# Run tests
+cargo test
+
+# Run the editor
+cargo run -- [filename]
+
+# Check without building
+cargo check
+
+# Format code
+cargo fmt
+
+# Lint
+cargo clippy
 ```
 
 ---
 
-## Egon's Machine
+## Nice-to-Have Tools
 
-*Egon, bitte ergänzen:*
-
-### Already Installed
-- [ ] Rust?
-- [ ] Git?
-
-### Needed
-- [ ] ???
-
----
-
-## Shared Development Tools
-
-### Recommended Cargo Extensions
+### Development Helpers
 ```bash
-cargo install cargo-edit      # `cargo add/rm` commands
-cargo install cargo-outdated  # check for outdated deps
-cargo install cargo-audit     # security audit
+cargo install tree-sitter-cli  # Syntax highlighting dev
+cargo install just             # Command runner (like make)
+cargo install bacon            # Live compiler feedback
+cargo install cargo-watch      # Auto-rebuild on save
+cargo install cargo-edit       # `cargo add/rm` commands
+cargo install cargo-outdated   # Check for outdated deps
+cargo install cargo-audit      # Security audit
 ```
 
-### Optional but Useful
+### System Tools
 - `ripgrep` (rg) — fast search
-- `fd` — fast find
+- `fd` — fast find  
 - `bat` — cat with syntax highlighting
 
 ---
 
 ## Branch Workflow
 
-Ab sofort: **Feature Branches!**
+**Ab sofort: Feature Branches!**
 
 ```bash
 # Neue Feature starten
+git checkout main
+git pull origin main
 git checkout -b feature/syntax-highlighting
-git checkout -b feature/search
-git checkout -b fix/cursor-bug
 
 # Nach Fertigstellung
 git push origin feature/xyz
 # → Pull Request erstellen
-# → Review
+# → Review (oder self-merge für kleine Änderungen)
 # → Merge to main
 ```
 
 **Naming Convention:**
-- `feature/` — neue Features
-- `fix/` — Bugfixes
-- `docs/` — Dokumentation
-- `refactor/` — Code-Umbau ohne neue Features
+| Prefix | Purpose |
+|--------|---------|
+| `feature/` | Neue Features |
+| `fix/` | Bugfixes |
+| `docs/` | Dokumentation |
+| `refactor/` | Code-Umbau ohne neue Features |
 
 ---
 
-*Letzte Aktualisierung: 2026-02-03*
+## Platform Notes
+
+### Linux (Primary Target)
+- Should work out of the box
+- Tested on: Ubuntu, Debian, Arch
+
+### macOS (Planned)
+- Requires Xcode Command Line Tools: `xcode-select --install`
+
+### Windows (Planned)
+- Requires Visual Studio Build Tools or MinGW
+- Consider using WSL2 for development
+
+---
+
+*Last updated: 2026-02-03 — Merged by Egon & Aibotix*
