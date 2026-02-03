@@ -946,6 +946,18 @@ impl Editor {
                     self.message = Some("Use / or ? to highlight searches".to_string());
                 }
             }
+            "map" => {
+                // Show keybindings (placeholder)
+                self.message = Some("Custom keybindings not yet implemented".to_string());
+            }
+            "setlocal" | "setl" => {
+                // Local buffer settings (placeholder)
+                self.message = Some("Local buffer settings not yet implemented".to_string());
+            }
+            "digraphs" => {
+                // Show digraphs (placeholder)
+                self.message = Some("Digraphs not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
