@@ -42,6 +42,32 @@
 
 ---
 
+### Session 2 — v0.2 Features (Afternoon)
+
+**Participants:** Aibotix
+
+**Features Implemented:**
+- ✅ Syntax highlighting (`syntax.rs`) — Rust, Python, JS, TOML, Markdown
+- ✅ Search with regex (`search.rs`) — /, ?, n, N, :noh
+- ✅ Undo/Redo (`history.rs`) — u, Ctrl+R
+- ✅ Yank/Paste with vim-style registers (`register.rs`) — yy, dd, p, P
+- ✅ Visual mode (v, V) with selection highlighting
+- ✅ Word motions — w, b, e
+- ✅ Line operations — cc, J
+- ✅ Additional commands — D, C, r, ~, >>, <<, ^
+
+**Technical Details:**
+- Selection rendering via `apply_all_highlights()` in view.rs
+- Register system supports chars, lines, and (future) block content
+- Word motion uses char classification (word/punctuation/whitespace)
+- Indent/outdent uses 4 spaces by default
+
+**Collaboration Note:**
+- Fixed compile errors in Egon's register.rs (doc comment issue)
+- Fixed lifetime issue in buffer.rs char_at()
+
+---
+
 ## Build Status
 
 ```bash
