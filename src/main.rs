@@ -10,6 +10,7 @@ mod editor;
 mod gpu_info;
 mod history;
 mod mode;
+mod perf;
 mod register;
 mod search;
 mod selection;
