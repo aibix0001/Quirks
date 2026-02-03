@@ -988,6 +988,39 @@ impl Editor {
                     }
                 }
             }
+            _ if cmd.starts_with("syntax ") || cmd.starts_with("syn ") => {
+                // Set syntax highlighting language
+                let lang = cmd.split_whitespace().nth(1).unwrap_or("");
+                match lang.to_lowercase().as_str() {
+                    "rust" | "rs" => {
+                        self.highlighter.set_syntax_for_extension("rs");
+                        self.message = Some("Syntax: Rust".to_string());
+                    }
+                    "python" | "py" => {
+                        self.highlighter.set_syntax_for_extension("py");
+                        self.message = Some("Syntax: Python".to_string());
+                    }
+                    "javascript" | "js" => {
+                        self.highlighter.set_syntax_for_extension("js");
+                        self.message = Some("Syntax: JavaScript".to_string());
+                    }
+                    "toml" => {
+                        self.highlighter.set_syntax_for_extension("toml");
+                        self.message = Some("Syntax: TOML".to_string());
+                    }
+                    "markdown" | "md" => {
+                        self.highlighter.set_syntax_for_extension("md");
+                        self.message = Some("Syntax: Markdown".to_string());
+                    }
+                    "off" | "none" | "plain" => {
+                        self.highlighter.set_syntax_for_extension("");
+                        self.message = Some("Syntax highlighting off".to_string());
+                    }
+                    _ => {
+                        self.message = Some(format!("Unknown syntax: {}. Use: rust, python, js, toml, md, off", lang));
+                    }
+                }
+            }
             _ => {
                 self.message = Some(format!("Unknown command: {}", cmd));
             }
