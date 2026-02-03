@@ -982,6 +982,28 @@ impl Editor {
                 // Verbose mode toggle (placeholder)
                 self.message = Some("Verbose mode not yet implemented".to_string());
             }
+            "filetype" | "ft" => {
+                // Show/set filetype
+                self.message = Some("Filetype detection not yet implemented".to_string());
+            }
+            "redir" => {
+                // Redirect output (placeholder)
+                self.message = Some("Output redirection not yet implemented".to_string());
+            }
+            "terminal" | "term" => {
+                // Terminal mode (placeholder)
+                self.message = Some("Terminal mode not yet implemented".to_string());
+            }
+            "debug" => {
+                // Debug info
+                self.message = Some(format!(
+                    "Buffers: {} | Mode: {} | Cursor: {}:{}",
+                    self.buffer_manager.buffer_count(),
+                    self.mode.display(),
+                    self.cursor.line + 1,
+                    self.cursor.col + 1
+                ));
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
