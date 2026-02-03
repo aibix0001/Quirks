@@ -72,6 +72,24 @@ impl BufferManager {
     pub fn buffer_count(&self) -> usize {
         self.buffers.len()
     }
+
+    /// Get current buffer index
+    pub fn current_index(&self) -> usize {
+        self.current
+    }
+
+    /// List all buffers with their names
+    pub fn list_buffers(&self) -> Vec<(usize, String, bool)> {
+        self.buffers
+            .iter()
+            .enumerate()
+            .map(|(i, buf)| {
+                let name = buf.file_name().unwrap_or("[No Name]").to_string();
+                let is_current = i == self.current;
+                (i, name, is_current)
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

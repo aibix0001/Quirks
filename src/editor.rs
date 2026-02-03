@@ -820,8 +820,22 @@ impl Editor {
             }
             "ls" | "buffers" => {
                 // List all open buffers
-                self.message = Some("Buffer list printed to status".to_string());
-                // In a real implementation, we'd show a buffer list
+                let buffers = self.buffer_manager.list_buffers();
+                if buffers.is_empty() {
+                    self.message = Some("No buffers open".to_string());
+                } else {
+                    let list: Vec<String> = buffers
+                        .iter()
+                        .map(|(i, name, is_current)| {
+                            if *is_current {
+                                format!("[{}] {}", i, name)
+                            } else {
+                                format!(" {}  {}", i, name)
+                            }
+                        })
+                        .collect();
+                    self.message = Some(list.join(" | "));
+                }
             }
             _ if cmd.starts_with("b ") => {
                 let buf_num_str = cmd.strip_prefix("b ").unwrap().trim();
