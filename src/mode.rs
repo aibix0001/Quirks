@@ -10,6 +10,8 @@ pub enum Mode {
     Insert,
     /// Command mode - entering ex-style commands (:w, :q, etc.)
     Command,
+    /// Search mode - entering search pattern (/ or ?)
+    Search,
 }
 
 impl Mode {
@@ -19,6 +21,7 @@ impl Mode {
             Mode::Normal => "NORMAL",
             Mode::Insert => "INSERT",
             Mode::Command => "COMMAND",
+            Mode::Search => "SEARCH",
         }
     }
 
@@ -28,6 +31,7 @@ impl Mode {
             Mode::Normal => CursorStyle::Block,
             Mode::Insert => CursorStyle::Bar,
             Mode::Command => CursorStyle::Block,
+            Mode::Search => CursorStyle::Block,
         }
     }
 }

@@ -3,9 +3,10 @@
 use crate::buffer::Buffer;
 use crate::cursor::Cursor;
 use crate::mode::Mode;
+use crate::search::{Search, SearchDirection};
 use crate::syntax::Highlighter;
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 
 /// The main editor state
 pub struct Editor {
@@ -25,6 +26,8 @@ pub struct Editor {
     viewport_height: usize,
     /// Syntax highlighter
     highlighter: Highlighter,
+    /// Search state
+    search: Search,
 }
 
 impl Default for Editor {
@@ -44,6 +47,7 @@ impl Editor {
             message: None,
             viewport_height: 24, // Default, updated on resize
             highlighter: Highlighter::new(),
+            search: Search::new(),
         }
     }
 
@@ -73,6 +77,7 @@ impl Editor {
             Mode::Normal => self.handle_normal_mode(key),
             Mode::Insert => self.handle_insert_mode(key),
             Mode::Command => self.handle_command_mode(key),
+            Mode::Search => self.handle_search_mode(key),
         }
     }
 
@@ -138,6 +143,32 @@ impl Editor {
             KeyCode::Char(':') => {
                 self.mode = Mode::Command;
                 self.command_buffer.clear();
+            }
+            
+            // Search
+            KeyCode::Char('/') => {
+                self.search.start(SearchDirection::Forward);
+                self.mode = Mode::Search;
+            }
+            KeyCode::Char('?') => {
+                self.search.start(SearchDirection::Backward);
+                self.mode = Mode::Search;
+            }
+            KeyCode::Char('n') => {
+                if let Some(m) = self.search.next_match() {
+                    self.cursor.line = m.line;
+                    self.cursor.col = m.start_col;
+                    self.ensure_cursor_visible();
+                    self.message = Some(self.search.match_info());
+                }
+            }
+            KeyCode::Char('N') => {
+                if let Some(m) = self.search.prev_match() {
+                    self.cursor.line = m.line;
+                    self.cursor.col = m.start_col;
+                    self.ensure_cursor_visible();
+                    self.message = Some(self.search.match_info());
+                }
             }
             
             _ => {}
@@ -251,9 +282,51 @@ impl Editor {
                     self.message = Some(format!("Written: {}", path));
                 }
             }
+            "noh" | "nohlsearch" => {
+                self.search.clear_highlight();
+            }
             _ => {
                 self.message = Some(format!("Unknown command: {}", cmd));
             }
+        }
+        false
+    }
+
+    /// Handle keys in search mode
+    fn handle_search_mode(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc => {
+                self.mode = Mode::Normal;
+                self.search.clear_highlight();
+            }
+            KeyCode::Enter => {
+                // Execute the search
+                let lines: Vec<String> = (0..self.buffer.line_count())
+                    .map(|i| self.buffer.line(i))
+                    .collect();
+                self.search.execute(&lines, self.cursor.line, self.cursor.col);
+                
+                // Jump to first match
+                if let Some(m) = self.search.current() {
+                    self.cursor.line = m.line;
+                    self.cursor.col = m.start_col;
+                    self.ensure_cursor_visible();
+                    self.message = Some(self.search.match_info());
+                } else if !self.search.is_empty() {
+                    self.message = Some("Pattern not found".to_string());
+                }
+                
+                self.mode = Mode::Normal;
+            }
+            KeyCode::Backspace => {
+                if !self.search.pop_char() {
+                    self.mode = Mode::Normal;
+                }
+            }
+            KeyCode::Char(c) => {
+                self.search.push_char(c);
+            }
+            _ => {}
         }
         false
     }
@@ -302,5 +375,9 @@ impl Editor {
 
     pub fn highlighter(&self) -> &Highlighter {
         &self.highlighter
+    }
+
+    pub fn search(&self) -> &Search {
+        &self.search
     }
 }
