@@ -5,6 +5,7 @@
 //!
 //! Initial implementation by Aibotix, refined with input from Egon.
 
+use crate::history::History;
 use anyhow::Result;
 use ropey::Rope;
 use std::fs;
@@ -12,7 +13,6 @@ use std::path::PathBuf;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A text buffer backed by a rope data structure
-#[derive(Debug)]
 pub struct Buffer {
     /// The text content
     rope: Rope,
@@ -20,6 +20,8 @@ pub struct Buffer {
     file_path: Option<PathBuf>,
     /// Whether the buffer has unsaved changes
     modified: bool,
+    /// Undo/redo history
+    history: History,
 }
 
 impl Default for Buffer {
@@ -31,20 +33,28 @@ impl Default for Buffer {
 impl Buffer {
     /// Create a new empty buffer
     pub fn new() -> Self {
+        let mut history = History::new();
+        let rope = Rope::new();
+        history.init(&rope, 0, 0);
         Self {
-            rope: Rope::new(),
+            rope,
             file_path: None,
             modified: false,
+            history,
         }
     }
 
     /// Create a buffer from a file
     pub fn from_file(path: &str) -> Result<Self> {
         let content = fs::read_to_string(path)?;
+        let rope = Rope::from_str(&content);
+        let mut history = History::new();
+        history.init(&rope, 0, 0);
         Ok(Self {
-            rope: Rope::from_str(&content),
+            rope,
             file_path: Some(PathBuf::from(path)),
             modified: false,
+            history,
         })
     }
 
@@ -187,5 +197,45 @@ impl Buffer {
     /// Get the full file path (if any)
     pub fn file_path(&self) -> Option<&PathBuf> {
         self.file_path.as_ref()
+    }
+
+    /// Record current state as a checkpoint for undo
+    /// Call this before making changes
+    pub fn checkpoint(&mut self, cursor_line: usize, cursor_col: usize) {
+        self.history.record(&self.rope, cursor_line, cursor_col);
+    }
+
+    /// Undo the last change
+    /// Returns new cursor position (line, col), or None if nothing to undo
+    pub fn undo(&mut self, cursor_line: usize, cursor_col: usize) -> Option<(usize, usize)> {
+        if let Some((content, line, col)) = self.history.undo(&self.rope, cursor_line, cursor_col) {
+            self.rope = content;
+            self.modified = true;
+            Some((line, col))
+        } else {
+            None
+        }
+    }
+
+    /// Redo the last undone change
+    /// Returns new cursor position (line, col), or None if nothing to redo
+    pub fn redo(&mut self) -> Option<(usize, usize)> {
+        if let Some((content, line, col)) = self.history.redo() {
+            self.rope = content;
+            self.modified = true;
+            Some((line, col))
+        } else {
+            None
+        }
+    }
+
+    /// Check if undo is available
+    pub fn can_undo(&self) -> bool {
+        self.history.can_undo()
+    }
+
+    /// Check if redo is available
+    pub fn can_redo(&self) -> bool {
+        self.history.can_redo()
     }
 }

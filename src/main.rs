@@ -6,6 +6,7 @@
 mod buffer;
 mod cursor;
 mod editor;
+mod history;
 mod mode;
 mod search;
 mod syntax;

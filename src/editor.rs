@@ -6,7 +6,7 @@ use crate::mode::Mode;
 use crate::search::{Search, SearchDirection};
 use crate::syntax::Highlighter;
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// The main editor state
 pub struct Editor {
@@ -119,6 +119,7 @@ impl Editor {
                 self.mode = Mode::Insert;
             }
             KeyCode::Char('o') => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 self.cursor.move_to_line_end(&self.buffer);
                 let pos = self.cursor.byte_offset(&self.buffer);
                 self.buffer.insert(pos, "\n");
@@ -127,6 +128,7 @@ impl Editor {
                 self.mode = Mode::Insert;
             }
             KeyCode::Char('O') => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 self.cursor.move_to_line_start();
                 let pos = self.cursor.byte_offset(&self.buffer);
                 self.buffer.insert(pos, "\n");
@@ -135,6 +137,7 @@ impl Editor {
             
             // Deletion
             KeyCode::Char('x') => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 self.buffer.delete_grapheme(self.cursor.line, self.cursor.col);
                 self.cursor.clamp(&self.buffer);
             }
@@ -171,6 +174,32 @@ impl Editor {
                 }
             }
             
+            // Undo
+            KeyCode::Char('u') => {
+                if let Some((line, col)) = self.buffer.undo(self.cursor.line, self.cursor.col) {
+                    self.cursor.line = line;
+                    self.cursor.col = col;
+                    self.cursor.clamp(&self.buffer);
+                    self.ensure_cursor_visible();
+                    self.message = Some("Undo".to_string());
+                } else {
+                    self.message = Some("Already at oldest change".to_string());
+                }
+            }
+            
+            // Redo (Ctrl+R)
+            KeyCode::Char('r') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                if let Some((line, col)) = self.buffer.redo() {
+                    self.cursor.line = line;
+                    self.cursor.col = col;
+                    self.cursor.clamp(&self.buffer);
+                    self.ensure_cursor_visible();
+                    self.message = Some("Redo".to_string());
+                } else {
+                    self.message = Some("Already at newest change".to_string());
+                }
+            }
+            
             _ => {}
         }
         false
@@ -187,11 +216,13 @@ impl Editor {
                 }
             }
             KeyCode::Char(c) => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 let pos = self.cursor.byte_offset(&self.buffer);
                 self.buffer.insert_char(pos, c);
                 self.cursor.col += 1;
             }
             KeyCode::Enter => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 let pos = self.cursor.byte_offset(&self.buffer);
                 self.buffer.insert_char(pos, '\n');
                 self.cursor.line += 1;
@@ -199,12 +230,14 @@ impl Editor {
                 self.ensure_cursor_visible();
             }
             KeyCode::Backspace => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 let (new_line, new_col) = self.buffer.backspace(self.cursor.line, self.cursor.col);
                 self.cursor.line = new_line;
                 self.cursor.col = new_col;
                 self.ensure_cursor_visible();
             }
             KeyCode::Delete => {
+                self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 self.buffer.delete_grapheme(self.cursor.line, self.cursor.col);
             }
             KeyCode::Left => self.cursor.move_left(&self.buffer),
