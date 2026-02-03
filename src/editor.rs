@@ -911,6 +911,29 @@ impl Editor {
                 // Convert tabs to spaces (placeholder)
                 self.message = Some("Retab not yet implemented".to_string());
             }
+            "exit" | "quit" => {
+                // Exit editor (alias for :q)
+                if self.buffer.is_modified() {
+                    self.message = Some("File modified. Use :q! to force quit".to_string());
+                } else {
+                    return true;
+                }
+            }
+            "number" => {
+                // Toggle line numbers
+                self.config.line_numbers = !self.config.line_numbers;
+                let status = if self.config.line_numbers { "enabled" } else { "disabled" };
+                self.message = Some(format!("Line numbers {}", status));
+            }
+            "highlight" | "hlsearch" => {
+                // Toggle search highlighting
+                if self.search.highlight_active {
+                    self.search.clear_highlight();
+                    self.message = Some("Search highlighting disabled".to_string());
+                } else {
+                    self.message = Some("Use / or ? to highlight searches".to_string());
+                }
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
