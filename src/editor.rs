@@ -898,6 +898,19 @@ impl Editor {
                     lines, words, chars, bytes
                 ));
             }
+            "ascii" => {
+                // Show ASCII value of character under cursor
+                if let Some(ch) = self.buffer.char_at(self.cursor.line, self.cursor.col) {
+                    let code = ch as u32;
+                    self.message = Some(format!("'{}' = {} (0x{:X})", ch, code, code));
+                } else {
+                    self.message = Some("No character under cursor".to_string());
+                }
+            }
+            "retab" => {
+                // Convert tabs to spaces (placeholder)
+                self.message = Some("Retab not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
