@@ -73,3 +73,31 @@ impl BufferManager {
         self.buffers.len()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_buffer_manager_new() {
+        let bm = BufferManager::new();
+        assert!(!bm.has_buffers());
+        assert_eq!(bm.buffer_count(), 0);
+    }
+
+    #[test]
+    fn test_next_prev_empty() {
+        let mut bm = BufferManager::new();
+        // Should not panic on empty
+        bm.next_buffer();
+        bm.prev_buffer();
+        assert!(!bm.has_buffers());
+    }
+
+    #[test]
+    fn test_switch_to_invalid() {
+        let mut bm = BufferManager::new();
+        assert!(bm.switch_to(0).is_err());
+        assert!(bm.switch_to(5).is_err());
+    }
+}
