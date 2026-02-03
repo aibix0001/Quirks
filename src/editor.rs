@@ -5,6 +5,7 @@ use crate::cursor::Cursor;
 use crate::mode::Mode;
 use crate::register::{Registers, RegisterContent};
 use crate::search::{Search, SearchDirection};
+use crate::selection::{Selection, VisualMode};
 use crate::syntax::Highlighter;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -33,6 +34,8 @@ pub struct Editor {
     registers: Registers,
     /// Pending operator (for commands like dd, yy)
     pending_op: Option<char>,
+    /// Current selection (for visual mode)
+    selection: Option<Selection>,
 }
 
 impl Default for Editor {
@@ -55,6 +58,7 @@ impl Editor {
             search: Search::new(),
             registers: Registers::new(),
             pending_op: None,
+            selection: None,
         }
     }
 
@@ -85,6 +89,7 @@ impl Editor {
             Mode::Insert => self.handle_insert_mode(key),
             Mode::Command => self.handle_command_mode(key),
             Mode::Search => self.handle_search_mode(key),
+            Mode::Visual | Mode::VisualLine | Mode::VisualBlock => self.handle_visual_mode(key),
         }
     }
 
@@ -299,6 +304,20 @@ impl Editor {
                 }
             }
             
+            // Visual modes
+            KeyCode::Char('v') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.selection = Some(Selection::new(VisualMode::Char, self.cursor.line, self.cursor.col));
+                self.mode = Mode::Visual;
+            }
+            KeyCode::Char('V') => {
+                self.selection = Some(Selection::new(VisualMode::Line, self.cursor.line, self.cursor.col));
+                self.mode = Mode::VisualLine;
+            }
+            KeyCode::Char('v') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.selection = Some(Selection::new(VisualMode::Block, self.cursor.line, self.cursor.col));
+                self.mode = Mode::VisualBlock;
+            }
+            
             _ => {}
         }
         false
@@ -463,6 +482,212 @@ impl Editor {
         false
     }
 
+    /// Handle keys in visual mode
+    fn handle_visual_mode(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc => {
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Movement - same as normal mode but updates selection
+            KeyCode::Char('h') | KeyCode::Left => {
+                self.cursor.move_left(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.cursor.move_down(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.cursor.move_up(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('l') | KeyCode::Right => {
+                self.cursor.move_right(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('0') => {
+                self.cursor.move_to_line_start();
+                self.update_selection();
+            }
+            KeyCode::Char('$') => {
+                self.cursor.move_to_line_end(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('g') => {
+                self.cursor.move_to_buffer_start();
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('G') => {
+                self.cursor.move_to_buffer_end(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            
+            // Yank selection
+            KeyCode::Char('y') => {
+                self.yank_selection();
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Delete selection
+            KeyCode::Char('d') | KeyCode::Char('x') => {
+                self.delete_selection();
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Switch visual mode type
+            KeyCode::Char('v') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                if self.mode == Mode::Visual {
+                    self.mode = Mode::Normal;
+                    self.selection = None;
+                } else {
+                    if let Some(ref mut sel) = self.selection {
+                        sel.mode = VisualMode::Char;
+                    }
+                    self.mode = Mode::Visual;
+                }
+            }
+            KeyCode::Char('V') => {
+                if self.mode == Mode::VisualLine {
+                    self.mode = Mode::Normal;
+                    self.selection = None;
+                } else {
+                    if let Some(ref mut sel) = self.selection {
+                        sel.mode = VisualMode::Line;
+                    }
+                    self.mode = Mode::VisualLine;
+                }
+            }
+            
+            _ => {}
+        }
+        false
+    }
+
+    /// Update the selection's cursor position
+    fn update_selection(&mut self) {
+        if let Some(ref mut sel) = self.selection {
+            sel.update_cursor(self.cursor.line, self.cursor.col);
+        }
+    }
+
+    /// Yank the current selection to register
+    fn yank_selection(&mut self) {
+        let Some(ref sel) = self.selection else { return };
+        
+        let mut content = String::new();
+        let linewise = matches!(sel.mode, VisualMode::Line);
+        
+        match sel.mode {
+            VisualMode::Char => {
+                let (start_line, start_col, end_line, end_col) = sel.normalized();
+                for line_idx in start_line..=end_line {
+                    let line = self.buffer.line(line_idx);
+                    let chars: Vec<char> = line.chars().collect();
+                    
+                    let start = if line_idx == start_line { start_col } else { 0 };
+                    let end = if line_idx == end_line { (end_col + 1).min(chars.len()) } else { chars.len() };
+                    
+                    let part: String = chars.get(start..end).unwrap_or(&[]).iter().collect();
+                    content.push_str(&part);
+                    
+                    if line_idx < end_line {
+                        content.push('\n');
+                    }
+                }
+            }
+            VisualMode::Line => {
+                let (start_line, end_line) = sel.line_range();
+                for line_idx in start_line..=end_line {
+                    content.push_str(&self.buffer.line(line_idx));
+                    content.push('\n');
+                }
+            }
+            VisualMode::Block => {
+                let (start_line, end_line) = sel.line_range();
+                let (start_col, end_col) = sel.col_range();
+                for line_idx in start_line..=end_line {
+                    let line = self.buffer.line(line_idx);
+                    let chars: Vec<char> = line.chars().collect();
+                    let part: String = chars.get(start_col..(end_col + 1).min(chars.len())).unwrap_or(&[]).iter().collect();
+                    content.push_str(&part);
+                    if line_idx < end_line {
+                        content.push('\n');
+                    }
+                }
+            }
+        }
+        
+        let line_count = content.lines().count().max(1);
+        let register_content = if linewise {
+            RegisterContent::Lines(content)
+        } else {
+            RegisterContent::Chars(content)
+        };
+        self.registers.yank(register_content);
+        self.message = Some(format!("{} line(s) yanked", line_count));
+    }
+
+    /// Delete the current selection
+    fn delete_selection(&mut self) {
+        // Extract selection info before borrowing mutably
+        let sel_info = match &self.selection {
+            Some(sel) => Some((sel.mode, sel.normalized(), sel.line_range(), sel.col_range())),
+            None => None,
+        };
+        
+        let Some((mode, normalized, line_range, col_range)) = sel_info else { return };
+        
+        self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+        
+        // First yank the selection
+        self.yank_selection();
+        
+        match mode {
+            VisualMode::Char => {
+                let (start_line, start_col, end_line, end_col) = normalized;
+                let start_byte = self.buffer.line_to_byte(start_line) + self.buffer.col_to_byte(start_line, start_col);
+                let end_byte = self.buffer.line_to_byte(end_line) + self.buffer.col_to_byte(end_line, end_col + 1);
+                self.buffer.delete(start_byte, end_byte);
+                self.cursor.line = start_line;
+                self.cursor.col = start_col;
+            }
+            VisualMode::Line => {
+                let (start_line, end_line) = line_range;
+                let start_byte = self.buffer.line_to_byte(start_line);
+                let end_byte = if end_line + 1 < self.buffer.line_count() {
+                    self.buffer.line_to_byte(end_line + 1)
+                } else {
+                    self.buffer.line_to_byte(end_line) + self.buffer.line(end_line).len()
+                };
+                self.buffer.delete(start_byte, end_byte);
+                self.cursor.line = start_line;
+                self.cursor.col = 0;
+            }
+            VisualMode::Block => {
+                let (start_line, end_line) = line_range;
+                let (start_col, end_col) = col_range;
+                for line_idx in (start_line..=end_line).rev() {
+                    let start_byte = self.buffer.line_to_byte(line_idx) + self.buffer.col_to_byte(line_idx, start_col);
+                    let end_byte = self.buffer.line_to_byte(line_idx) + self.buffer.col_to_byte(line_idx, end_col + 1);
+                    self.buffer.delete(start_byte, end_byte);
+                }
+                self.cursor.line = start_line;
+                self.cursor.col = start_col;
+            }
+        }
+        
+        self.cursor.clamp(&self.buffer);
+        self.message = Some("Deleted".to_string());
+    }
+
     /// Ensure cursor is visible by adjusting scroll offset
     fn ensure_cursor_visible(&mut self) {
         // Leave some margin
@@ -511,5 +736,9 @@ impl Editor {
 
     pub fn search(&self) -> &Search {
         &self.search
+    }
+
+    pub fn selection(&self) -> Option<&Selection> {
+        self.selection.as_ref()
     }
 }

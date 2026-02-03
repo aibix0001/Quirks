@@ -10,6 +10,7 @@ mod history;
 mod mode;
 mod register;
 mod search;
+mod selection;
 mod syntax;
 mod view;
 

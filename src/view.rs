@@ -5,6 +5,7 @@
 use crate::editor::Editor;
 use crate::mode::Mode;
 use crate::search::{SearchDirection, SearchMatch};
+use crate::selection::Selection;
 use crate::syntax::HighlightSpan;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -71,9 +72,10 @@ fn render_editor_area(frame: &mut Frame, editor: &Editor, area: Rect) {
     let line_num_widget = Paragraph::new(line_numbers);
     frame.render_widget(line_num_widget, chunks[0]);
 
-    // Render content with syntax and search highlighting
+    // Render content with syntax, search, and selection highlighting
     let highlighter = editor.highlighter();
     let search = editor.search();
+    let selection = editor.selection();
     let search_matches: Vec<&SearchMatch> = if search.highlight_active {
         search.matches().iter().collect()
     } else {
@@ -94,7 +96,7 @@ fn render_editor_area(frame: &mut Frame, editor: &Editor, area: Rect) {
                 .copied()
                 .collect();
             
-            let spans = apply_highlights_with_search(&line_content, &syntax_highlights, &line_search_matches);
+            let spans = apply_all_highlights(&line_content, line_idx, &syntax_highlights, &line_search_matches, selection);
             content_lines.push(Line::from(spans));
         } else {
             content_lines.push(Line::from(""));
@@ -116,6 +118,7 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         Mode::Insert => Style::default().bg(Color::Green).fg(Color::Black),
         Mode::Command => Style::default().bg(Color::Yellow).fg(Color::Black),
         Mode::Search => Style::default().bg(Color::Magenta).fg(Color::White),
+        Mode::Visual | Mode::VisualLine | Mode::VisualBlock => Style::default().bg(Color::Cyan).fg(Color::Black),
     };
     let mode_span = Span::styled(format!(" {} ", mode.display()), mode_style);
     
@@ -173,15 +176,17 @@ fn render_command_line(frame: &mut Frame, editor: &Editor, area: Rect) {
     frame.render_widget(widget, area);
 }
 
-/// Apply syntax highlighting and search highlighting to a line of text
-fn apply_highlights_with_search(
+/// Apply all highlighting (syntax, search, selection) to a line of text
+fn apply_all_highlights(
     line: &str,
+    line_idx: usize,
     syntax_highlights: &[HighlightSpan],
     search_matches: &[&SearchMatch],
+    selection: Option<&Selection>,
 ) -> Vec<Span<'static>> {
     let chars: Vec<char> = line.chars().collect();
     
-    if syntax_highlights.is_empty() && search_matches.is_empty() {
+    if syntax_highlights.is_empty() && search_matches.is_empty() && selection.is_none() {
         return vec![Span::raw(line.to_string())];
     }
 
@@ -189,13 +194,33 @@ fn apply_highlights_with_search(
     let mut i = 0;
 
     while i < chars.len() {
+        // Check if we're in a selection
+        let in_selection = selection.map_or(false, |s| s.contains(line_idx, i));
+        
         // Check if we're in a search match
         let search_match = search_matches.iter().find(|m| i >= m.start_col && i < m.end_col);
         
         // Check if we're in a syntax highlight
         let syntax_hl = syntax_highlights.iter().find(|h| i >= h.start && i < h.end);
         
-        if let Some(sm) = search_match {
+        if in_selection {
+            // Selection - find extent
+            let mut end = i + 1;
+            while end < chars.len() && selection.map_or(false, |s| s.contains(line_idx, end)) {
+                end += 1;
+            }
+            let text: String = chars[i..end].iter().collect();
+            
+            // Apply syntax color on selection background
+            let fg = syntax_hl.map(|h| h.style.fg.unwrap_or(Color::White)).unwrap_or(Color::White);
+            spans.push(Span::styled(
+                text,
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(fg),
+            ));
+            i = end;
+        } else if let Some(sm) = search_match {
             // Search match takes priority - render with highlight background
             let end = sm.end_col.min(chars.len());
             let text: String = chars[i..end].iter().collect();
@@ -210,13 +235,22 @@ fn apply_highlights_with_search(
         } else if let Some(sh) = syntax_hl {
             // Regular syntax highlight
             let end = sh.end.min(chars.len());
-            // Check if a search match starts before the syntax highlight ends
+            // Check if selection or search starts before syntax ends
+            let selection_start = if selection.is_some() {
+                (i+1..end).find(|&c| selection.map_or(false, |s| s.contains(line_idx, c)))
+            } else {
+                None
+            };
             let search_start = search_matches
                 .iter()
                 .filter(|m| m.start_col > i && m.start_col < end)
                 .map(|m| m.start_col)
                 .min();
-            let actual_end = search_start.unwrap_or(end);
+            let actual_end = [selection_start, search_start, Some(end)]
+                .into_iter()
+                .flatten()
+                .min()
+                .unwrap_or(end);
             
             let text: String = chars[i..actual_end].iter().collect();
             spans.push(Span::styled(text, sh.style));
@@ -233,18 +267,26 @@ fn apply_highlights_with_search(
                 .filter(|m| m.start_col > i)
                 .map(|m| m.start_col)
                 .min();
-            let next = match (next_syntax, next_search) {
-                (Some(s), Some(r)) => Some(s.min(r)),
-                (Some(s), None) => Some(s),
-                (None, Some(r)) => Some(r),
-                (None, None) => None,
+            let next_selection = if selection.is_some() {
+                (i+1..chars.len()).find(|&c| selection.map_or(false, |s| s.contains(line_idx, c)))
+            } else {
+                None
             };
+            let next = [next_syntax, next_search, next_selection]
+                .into_iter()
+                .flatten()
+                .min();
             
             let end = next.unwrap_or(chars.len()).min(chars.len());
             let text: String = chars[i..end].iter().collect();
             spans.push(Span::raw(text));
             i = end;
         }
+    }
+
+    // Handle empty line with selection
+    if chars.is_empty() && selection.map_or(false, |s| s.contains(line_idx, 0)) {
+        spans.push(Span::styled(" ", Style::default().bg(Color::DarkGray)));
     }
 
     if spans.is_empty() {
