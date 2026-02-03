@@ -335,7 +335,7 @@ impl Editor {
             
             // Mode switching
             KeyCode::Char('i') => self.mode = Mode::Insert,
-            KeyCode::Char('a') => {
+            KeyCode::Char('a') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.cursor.move_right(&self.buffer);
                 self.mode = Mode::Insert;
             }
@@ -365,7 +365,7 @@ impl Editor {
             }
             
             // Deletion
-            KeyCode::Char('x') => {
+            KeyCode::Char('x') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.buffer.checkpoint(self.cursor.line, self.cursor.col);
                 // Yank the character before deleting
                 if let Some(ch) = self.buffer.char_at(self.cursor.line, self.cursor.col) {
@@ -707,6 +707,18 @@ impl Editor {
                 self.mode = Mode::VisualBlock;
             }
             
+            // Number increment (Ctrl+A)
+            KeyCode::Char('a') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                // Find number at or after cursor and increment it
+                self.message = Some("Number increment not yet implemented".to_string());
+            }
+
+            // Number decrement (Ctrl+X)
+            KeyCode::Char('x') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                // Find number at or after cursor and decrement it
+                self.message = Some("Number decrement not yet implemented".to_string());
+            }
+
             // File info (Ctrl+G)
             KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 let lines = self.buffer.line_count();
