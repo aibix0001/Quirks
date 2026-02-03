@@ -78,6 +78,39 @@ Ready for basic editing tasks. Covers most commonly-used vi commands.
 
 ---
 
+### Session 3 — v0.3 Multi-Buffer & Performance (Evening)
+
+**Participants:** Aibotix, Egon
+
+**Features Implemented:**
+- ✅ Buffer Manager (`buffer_manager.rs`) — multi-file editing support
+- ✅ Tab navigation (gt/gT) — next/previous buffer
+- ✅ Buffer commands — :e, :ls, :b <N>, :bd
+- ✅ Numeric prefixes — 5j, 3w, 2dd work everywhere
+- ✅ GPU info module (`gpu_info.rs`) — status bar integration
+- ✅ Clone support for Buffer and History structs
+- ✅ pending_g state for gg/gt/gT key sequences
+
+**Technical Details:**
+- BufferManager holds Vec<Buffer> with current index
+- gt/gT wrap around at buffer list edges
+- GPU usage displayed in status line (placeholder for now)
+- Buffer cloning enables seamless switching
+
+**Commands Added:**
+- `gt` — next buffer
+- `gT` — previous buffer  
+- `gg` — go to buffer start (via pending_g)
+- `:e <file>` — open file in new buffer
+- `:ls` — list buffers
+- `:b <N>` — switch to buffer N
+- `:bd` — close current buffer
+
+**v0.3 Status:** ✅ **COMPLETE**
+Multi-buffer editing with tab navigation fully functional.
+
+---
+
 ## Build Status
 
 ```bash
