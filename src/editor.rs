@@ -738,7 +738,10 @@ impl Editor {
             }
             KeyCode::Enter => {
                 let should_quit = self.execute_command();
-                self.mode = Mode::Normal;
+                // Don't reset mode if command changed it (e.g., to Help)
+                if self.mode == Mode::Command {
+                    self.mode = Mode::Normal;
+                }
                 self.command_buffer.clear();
                 return should_quit;
             }
