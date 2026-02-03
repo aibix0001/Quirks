@@ -140,7 +140,13 @@ impl Buffer {
     /// Insert a character at the given byte position
     pub fn insert_char(&mut self, byte_pos: usize, ch: char) {
         // Convert byte position to char position for ropey
-        let char_pos = self.rope.byte_to_char(byte_pos);
+        // Clamp to valid range to handle end-of-buffer insertion
+        let byte_pos = byte_pos.min(self.rope.len_bytes());
+        let char_pos = if byte_pos >= self.rope.len_bytes() {
+            self.rope.len_chars()
+        } else {
+            self.rope.byte_to_char(byte_pos)
+        };
         self.rope.insert_char(char_pos, ch);
         self.modified = true;
     }
@@ -148,7 +154,13 @@ impl Buffer {
     /// Insert a string at the given byte position
     pub fn insert(&mut self, byte_pos: usize, text: &str) {
         // Convert byte position to char position for ropey
-        let char_pos = self.rope.byte_to_char(byte_pos);
+        // Clamp to valid range to handle end-of-buffer insertion
+        let byte_pos = byte_pos.min(self.rope.len_bytes());
+        let char_pos = if byte_pos >= self.rope.len_bytes() {
+            self.rope.len_chars()
+        } else {
+            self.rope.byte_to_char(byte_pos)
+        };
         self.rope.insert(char_pos, text);
         self.modified = true;
     }
