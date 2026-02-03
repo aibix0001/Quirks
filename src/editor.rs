@@ -877,6 +877,19 @@ impl Editor {
                     self.config.syntax_highlighting
                 ));
             }
+            "registers" | "reg" => {
+                // Show register contents
+                if let Some(content) = self.registers.get_unnamed() {
+                    let preview: String = match content {
+                        RegisterContent::Chars(s) => s.chars().take(40).collect(),
+                        RegisterContent::Lines(s) => s.replace('\n', "\\n").chars().take(40).collect(),
+                        RegisterContent::Block(lines) => lines.join("\\n").chars().take(40).collect(),
+                    };
+                    self.message = Some(format!("\"\" = \"{}{}\"", preview, if preview.len() >= 40 { "..." } else { "" }));
+                } else {
+                    self.message = Some("Registers empty".to_string());
+                }
+            }
             "set number" | "set nu" => {
                 self.config.line_numbers = true;
                 self.message = Some("Line numbers enabled".to_string());
