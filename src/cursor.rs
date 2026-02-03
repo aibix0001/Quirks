@@ -312,3 +312,37 @@ fn char_type(c: char) -> CharType {
         CharType::Punctuation
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cursor_new() {
+        let cursor = Cursor::new();
+        assert_eq!(cursor.line, 0);
+        assert_eq!(cursor.col, 0);
+    }
+
+    #[test]
+    fn test_char_type_word() {
+        assert_eq!(char_type('a'), CharType::Word);
+        assert_eq!(char_type('Z'), CharType::Word);
+        assert_eq!(char_type('5'), CharType::Word);
+        assert_eq!(char_type('_'), CharType::Word);
+    }
+
+    #[test]
+    fn test_char_type_whitespace() {
+        assert_eq!(char_type(' '), CharType::Whitespace);
+        assert_eq!(char_type('\t'), CharType::Whitespace);
+        assert_eq!(char_type('\n'), CharType::Whitespace);
+    }
+
+    #[test]
+    fn test_char_type_punctuation() {
+        assert_eq!(char_type('.'), CharType::Punctuation);
+        assert_eq!(char_type(','), CharType::Punctuation);
+        assert_eq!(char_type('!'), CharType::Punctuation);
+    }
+}
