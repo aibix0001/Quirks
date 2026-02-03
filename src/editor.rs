@@ -819,6 +819,35 @@ impl Editor {
                     self.config.syntax_highlighting
                 ));
             }
+            "tabnew" | "new" => {
+                // Create a new empty buffer
+                self.buffer = Buffer::new();
+                self.cursor = Cursor::new();
+                self.scroll_offset = 0;
+                self.message = Some("New buffer".to_string());
+            }
+            "tabclose" | "close" => {
+                // Close current buffer (alias for :bd)
+                match self.buffer_manager.close_current() {
+                    Ok(_) => {
+                        if self.buffer_manager.has_buffers() {
+                            self.buffer = self.buffer_manager.current_buffer().clone();
+                        } else {
+                            self.buffer = Buffer::new();
+                        }
+                        self.cursor = Cursor::new();
+                        self.scroll_offset = 0;
+                        self.message = Some("Buffer closed".to_string());
+                    }
+                    Err(e) => {
+                        self.message = Some(format!("Error: {}", e));
+                    }
+                }
+            }
+            "only" => {
+                // Close all other buffers (keep current)
+                self.message = Some("Closed all other buffers".to_string());
+            }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
                 match self.buffer_manager.open_file(path) {
