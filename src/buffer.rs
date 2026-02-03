@@ -137,21 +137,30 @@ impl Buffer {
     }
 
     /// Insert a character at the given byte position
+    /// Insert a character at the given byte position
     pub fn insert_char(&mut self, byte_pos: usize, ch: char) {
-        self.rope.insert_char(byte_pos, ch);
+        // Convert byte position to char position for ropey
+        let char_pos = self.rope.byte_to_char(byte_pos);
+        self.rope.insert_char(char_pos, ch);
         self.modified = true;
     }
 
     /// Insert a string at the given byte position
     pub fn insert(&mut self, byte_pos: usize, text: &str) {
-        self.rope.insert(byte_pos, text);
+        // Convert byte position to char position for ropey
+        let char_pos = self.rope.byte_to_char(byte_pos);
+        self.rope.insert(char_pos, text);
         self.modified = true;
     }
 
     /// Delete a range of bytes
+    /// Delete text between byte positions
     pub fn delete(&mut self, start: usize, end: usize) {
         if start < end && end <= self.rope.len_bytes() {
-            self.rope.remove(start..end);
+            // Convert byte positions to char positions for ropey
+            let char_start = self.rope.byte_to_char(start);
+            let char_end = self.rope.byte_to_char(end);
+            self.rope.remove(char_start..char_end);
             self.modified = true;
         }
     }
@@ -413,11 +422,12 @@ mod tests {
     fn test_insert_char_umlaut() {
         let mut buffer = Buffer::new();
         // Simulate typing "Größe" character by character
-        buffer.insert_char(0, 'G');
-        buffer.insert_char(1, 'r');
-        buffer.insert_char(2, 'ö');
-        buffer.insert_char(3, 'ß');
-        buffer.insert_char(4, 'e');
+        // Each insertion is at the current end of buffer (byte position)
+        buffer.insert_char(0, 'G');  // "G" - byte pos 0
+        buffer.insert_char(1, 'r');  // "Gr" - byte pos 1
+        buffer.insert_char(2, 'ö');  // "Grö" - byte pos 2
+        buffer.insert_char(4, 'ß');  // "Größ" - byte pos 4 (after 2-byte ö)
+        buffer.insert_char(6, 'e');  // "Größe" - byte pos 6 (after 2-byte ß)
         assert_eq!(buffer.line(0), "Größe");
         assert_eq!(buffer.line_len(0), 5);
     }
