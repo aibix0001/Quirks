@@ -116,6 +116,9 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         Mode::Insert => Style::default().bg(Color::Green).fg(Color::Black),
         Mode::Command => Style::default().bg(Color::Yellow).fg(Color::Black),
         Mode::Search => Style::default().bg(Color::Magenta).fg(Color::White),
+        Mode::Visual | Mode::VisualLine | Mode::VisualBlock => {
+            Style::default().bg(Color::Cyan).fg(Color::Black)
+        }
     };
     let mode_span = Span::styled(format!(" {} ", mode.display()), mode_style);
     

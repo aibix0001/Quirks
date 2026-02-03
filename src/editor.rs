@@ -626,14 +626,14 @@ impl Editor {
                     if start_line == end_line {
                         // Single line selection
                         let chars: Vec<char> = line.chars().collect();
-                        let end = (end_col + 1).min(chars.len());
+                        let end: usize = (end_col + 1).min(chars.len());
                         text.extend(&chars[start_col..end]);
                     } else if line_idx == start_line {
                         let chars: Vec<char> = line.chars().collect();
                         text.extend(&chars[start_col..]);
                     } else if line_idx == end_line {
                         let chars: Vec<char> = line.chars().collect();
-                        let end = (end_col + 1).min(chars.len());
+                        let end: usize = (end_col + 1).min(chars.len());
                         text.extend(&chars[..end]);
                     } else {
                         text.push_str(&line);
@@ -661,7 +661,7 @@ impl Editor {
 
     /// Delete the text covered by the current selection
     fn delete_selection(&mut self) {
-        let sel = match self.selection.as_ref() {
+        let sel: &Selection = match self.selection.as_ref() {
             Some(s) => s,
             None => return,
         };
