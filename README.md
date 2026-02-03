@@ -115,13 +115,68 @@ cargo build --release
 cargo test
 ```
 
+## Examples
+
+### Create a new project
+```bash
+quirks main.rs
+# In editor:
+i
+fn main() {
+    println!("Hello, Quirks!");
+}
+<Esc>
+:w
+```
+
+### Switch between files
+```bash
+:e other_file.rs    # Open another file (in new buffer)
+:ls                 # List all open buffers
+gt                  # Next buffer
+gT                  # Previous buffer
+:b 0                # Switch to buffer 0
+```
+
+### Navigate efficiently
+```bash
+5j                  # Jump 5 lines down
+10w                 # Jump 10 words forward
+gg                  # Go to start of file
+G                   # Go to end of file
+/pattern            # Search for pattern
+n                   # Next match
+```
+
+### Edit and format
+```bash
+yy                  # Copy line
+5p                  # Paste 5 times
+>>                  # Indent
+<<                  # Outdent
+~                   # Toggle case of character
+J                   # Join lines
+```
+
+## Tips & Tricks
+
+- Use `:help` to show command reference
+- Use `Ctrl+G` to see file info and cursor position
+- Use `:stats` or `:wc` to count words and lines
+- Use `:syntax rust` to set highlighting language
+- Use `:set number` to toggle line numbers
+- Use `:pwd` to show current directory
+
 ## Status
 
 **v0.3.1** — Feature-complete modal editor with:
-- 100+ Vim-style commands
-- Multi-buffer editing
-- Full UTF-8/Unicode support
-- 23 unit tests passing
+- 140+ Vim-style commands and features
+- Multi-buffer editing with navigation
+- Full UTF-8/Unicode support (including umlauts)
+- 45 unit tests passing
+- Configuration system (~/.quirksrc)
+- Help overlay and status line
+- Release binary: 2.7MB
 
 ## Team
 
