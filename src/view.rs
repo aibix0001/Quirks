@@ -44,38 +44,45 @@ pub fn render(frame: &mut Frame, editor: &Editor) {
 fn render_editor_area(frame: &mut Frame, editor: &Editor, area: Rect) {
     let buffer = editor.buffer();
     let scroll_offset = editor.scroll_offset();
+    let show_line_numbers = editor.config().line_numbers;
 
-    // Calculate line number width
+    // Calculate line number width (only if showing)
     let total_lines = buffer.line_count();
-    let line_num_width = total_lines.to_string().len().max(2) as u16;
+    let line_num_width = if show_line_numbers {
+        total_lines.to_string().len().max(2) as u16
+    } else {
+        0
+    };
 
     // Split into line numbers and content
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(line_num_width + 1), // Line numbers + separator
-            Constraint::Min(1),                      // Content
+            Constraint::Length(if show_line_numbers { line_num_width + 1 } else { 0 }),
+            Constraint::Min(1),
         ])
         .split(area);
 
-    // Render line numbers
-    let mut line_numbers: Vec<Line> = Vec::new();
-    for i in 0..area.height as usize {
-        let line_idx = scroll_offset + i;
-        if line_idx < total_lines {
-            line_numbers.push(Line::from(Span::styled(
-                format!("{:>width$} ", line_idx + 1, width = line_num_width as usize),
-                Style::default().fg(Color::DarkGray),
-            )));
-        } else {
-            line_numbers.push(Line::from(Span::styled(
-                format!("{:>width$} ", "~", width = line_num_width as usize),
-                Style::default().fg(Color::DarkGray),
-            )));
+    // Render line numbers (if enabled)
+    if show_line_numbers {
+        let mut line_numbers: Vec<Line> = Vec::new();
+        for i in 0..area.height as usize {
+            let line_idx = scroll_offset + i;
+            if line_idx < total_lines {
+                line_numbers.push(Line::from(Span::styled(
+                    format!("{:>width$} ", line_idx + 1, width = line_num_width as usize),
+                    Style::default().fg(Color::DarkGray),
+                )));
+            } else {
+                line_numbers.push(Line::from(Span::styled(
+                    format!("{:>width$} ", "~", width = line_num_width as usize),
+                    Style::default().fg(Color::DarkGray),
+                )));
+            }
         }
+        let line_num_widget = Paragraph::new(line_numbers);
+        frame.render_widget(line_num_widget, chunks[0]);
     }
-    let line_num_widget = Paragraph::new(line_numbers);
-    frame.render_widget(line_num_widget, chunks[0]);
 
     // Render content with syntax, search, and selection highlighting
     let highlighter = editor.highlighter();
@@ -384,10 +391,15 @@ fn calculate_cursor_position(editor: &Editor, editor_area: Rect) -> (u16, u16) {
     let cursor = editor.cursor();
     let scroll_offset = editor.scroll_offset();
     let buffer = editor.buffer();
+    let show_line_numbers = editor.config().line_numbers;
 
-    // Calculate line number width
-    let total_lines = buffer.line_count();
-    let line_num_width = total_lines.to_string().len().max(2) as u16 + 1;
+    // Calculate line number width (only if showing)
+    let line_num_width = if show_line_numbers {
+        let total_lines = buffer.line_count();
+        total_lines.to_string().len().max(2) as u16 + 1
+    } else {
+        0
+    };
 
     let screen_line = cursor.line.saturating_sub(scroll_offset) as u16;
     let screen_col = cursor.col as u16 + line_num_width;
