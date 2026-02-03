@@ -408,4 +408,28 @@ mod tests {
         // Should be 3 graphemes, not 6 bytes
         assert_eq!(buffer.line_len(0), 3);
     }
+
+    #[test]
+    fn test_insert_char_umlaut() {
+        let mut buffer = Buffer::new();
+        // Simulate typing "Größe" character by character
+        buffer.insert_char(0, 'G');
+        buffer.insert_char(1, 'r');
+        buffer.insert_char(2, 'ö');
+        buffer.insert_char(3, 'ß');
+        buffer.insert_char(4, 'e');
+        assert_eq!(buffer.line(0), "Größe");
+        assert_eq!(buffer.line_len(0), 5);
+    }
+
+    #[test]
+    fn test_col_to_byte_with_umlauts() {
+        let mut buffer = Buffer::new();
+        buffer.insert(0, "äöü");
+        // ä = 2 bytes, ö = 2 bytes, ü = 2 bytes in UTF-8
+        assert_eq!(buffer.col_to_byte(0, 0), 0);
+        assert_eq!(buffer.col_to_byte(0, 1), 2);  // After ä
+        assert_eq!(buffer.col_to_byte(0, 2), 4);  // After äö
+        assert_eq!(buffer.col_to_byte(0, 3), 6);  // After äöü
+    }
 }
