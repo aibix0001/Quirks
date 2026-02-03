@@ -128,6 +128,7 @@ impl Editor {
             
             // Line start/end
             KeyCode::Char('0') => self.cursor.move_to_line_start(),
+            KeyCode::Char('^') => self.cursor.move_to_first_non_whitespace(&self.buffer),
             KeyCode::Char('$') => self.cursor.move_to_line_end(&self.buffer),
             
             // Buffer start/end
@@ -678,6 +679,10 @@ impl Editor {
             }
             KeyCode::Char('0') => {
                 self.cursor.move_to_line_start();
+                self.update_selection();
+            }
+            KeyCode::Char('^') => {
+                self.cursor.move_to_first_non_whitespace(&self.buffer);
                 self.update_selection();
             }
             KeyCode::Char('$') => {

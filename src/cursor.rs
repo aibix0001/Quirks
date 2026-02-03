@@ -71,6 +71,14 @@ impl Cursor {
         self.sticky_col = 0;
     }
 
+    /// Move to first non-whitespace character on line (^)
+    pub fn move_to_first_non_whitespace(&mut self, buffer: &Buffer) {
+        let line = buffer.line(self.line);
+        let first_non_ws = line.chars().position(|c| !c.is_whitespace() && c != '\n');
+        self.col = first_non_ws.unwrap_or(0);
+        self.sticky_col = self.col;
+    }
+
     /// Move to end of current line
     pub fn move_to_line_end(&mut self, buffer: &Buffer) {
         self.col = buffer.line_len(self.line);
