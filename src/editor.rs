@@ -3,6 +3,7 @@
 use crate::buffer::Buffer;
 use crate::cursor::Cursor;
 use crate::mode::Mode;
+use crate::syntax::Highlighter;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -22,6 +23,8 @@ pub struct Editor {
     message: Option<String>,
     /// Terminal height (for scroll calculations)
     viewport_height: usize,
+    /// Syntax highlighter
+    highlighter: Highlighter,
 }
 
 impl Default for Editor {
@@ -40,6 +43,7 @@ impl Editor {
             command_buffer: String::new(),
             message: None,
             viewport_height: 24, // Default, updated on resize
+            highlighter: Highlighter::new(),
         }
     }
 
@@ -48,7 +52,16 @@ impl Editor {
         self.buffer = Buffer::from_file(path)?;
         self.cursor = Cursor::new();
         self.scroll_offset = 0;
-        self.message = Some(format!("Opened: {}", path));
+        
+        // Set syntax highlighting based on file extension
+        if let Some(ext) = std::path::Path::new(path).extension().and_then(|e| e.to_str()) {
+            self.highlighter.set_syntax_for_extension(ext);
+        }
+        
+        let syntax_info = self.highlighter.current_syntax_name()
+            .map(|s| format!(" [{}]", s))
+            .unwrap_or_default();
+        self.message = Some(format!("Opened: {}{}", path, syntax_info));
         Ok(())
     }
 
@@ -285,5 +298,9 @@ impl Editor {
 
     pub fn message(&self) -> Option<&String> {
         self.message.as_ref()
+    }
+
+    pub fn highlighter(&self) -> &Highlighter {
+        &self.highlighter
     }
 }

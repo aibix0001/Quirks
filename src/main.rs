@@ -7,6 +7,7 @@ mod buffer;
 mod cursor;
 mod editor;
 mod mode;
+mod syntax;
 mod view;
 
 use anyhow::Result;
