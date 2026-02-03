@@ -807,6 +807,18 @@ impl Editor {
                 self.mode = Mode::Help;
                 self.message = Some("Press q/Esc/Enter to close help".to_string());
             }
+            "version" | "ver" => {
+                self.message = Some("Quirks v0.3.0 - A modal text editor".to_string());
+            }
+            "set" => {
+                // Show current settings
+                self.message = Some(format!(
+                    "tab_width={} line_numbers={} syntax={}",
+                    self.config.tab_width,
+                    self.config.line_numbers,
+                    self.config.syntax_highlighting
+                ));
+            }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
                 match self.buffer_manager.open_file(path) {
