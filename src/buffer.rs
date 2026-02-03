@@ -76,6 +76,19 @@ impl Buffer {
         Ok(())
     }
 
+    /// Reload the buffer from disk
+    pub fn reload(&mut self) -> Result<()> {
+        if let Some(path) = &self.file_path {
+            let content = fs::read_to_string(path)?;
+            self.rope = Rope::from_str(&content);
+            self.modified = false;
+            self.history.clear();
+            Ok(())
+        } else {
+            anyhow::bail!("No file path")
+        }
+    }
+
     /// Get the number of lines in the buffer
     pub fn line_count(&self) -> usize {
         self.rope.len_lines().max(1)

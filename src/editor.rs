@@ -941,6 +941,31 @@ impl Editor {
                 // Close all other buffers (keep current)
                 self.message = Some("Closed all other buffers".to_string());
             }
+            "e" | "edit" => {
+                // Reload current file
+                if let Some(path) = self.buffer.file_path() {
+                    let path_str = path.display().to_string();
+                    match self.buffer.reload() {
+                        Ok(_) => {
+                            self.cursor = Cursor::new();
+                            self.scroll_offset = 0;
+                            self.message = Some(format!("Reloaded: {}", path_str));
+                        }
+                        Err(e) => {
+                            self.message = Some(format!("Error reloading: {}", e));
+                        }
+                    }
+                } else {
+                    self.message = Some("No file to reload".to_string());
+                }
+            }
+            "enew" => {
+                // Create new empty buffer
+                self.buffer = Buffer::new();
+                self.cursor = Cursor::new();
+                self.scroll_offset = 0;
+                self.message = Some("New buffer".to_string());
+            }
             _ if cmd.starts_with("e ") => {
                 let path = cmd.strip_prefix("e ").unwrap().trim();
                 match self.buffer_manager.open_file(path) {
