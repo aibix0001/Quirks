@@ -12,6 +12,12 @@ pub enum Mode {
     Command,
     /// Search mode - entering search pattern (/ or ?)
     Search,
+    /// Visual mode - character-wise selection (v)
+    Visual,
+    /// Visual line mode - line-wise selection (V)
+    VisualLine,
+    /// Visual block mode - block selection (Ctrl+V)
+    VisualBlock,
 }
 
 impl Mode {
@@ -22,6 +28,9 @@ impl Mode {
             Mode::Insert => "INSERT",
             Mode::Command => "COMMAND",
             Mode::Search => "SEARCH",
+            Mode::Visual => "VISUAL",
+            Mode::VisualLine => "V-LINE",
+            Mode::VisualBlock => "V-BLOCK",
         }
     }
 
@@ -32,7 +41,13 @@ impl Mode {
             Mode::Insert => CursorStyle::Bar,
             Mode::Command => CursorStyle::Block,
             Mode::Search => CursorStyle::Block,
+            Mode::Visual | Mode::VisualLine | Mode::VisualBlock => CursorStyle::Block,
         }
+    }
+
+    /// Check if in any visual mode
+    pub fn is_visual(&self) -> bool {
+        matches!(self, Mode::Visual | Mode::VisualLine | Mode::VisualBlock)
     }
 }
 

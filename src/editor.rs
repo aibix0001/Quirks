@@ -5,6 +5,7 @@ use crate::cursor::Cursor;
 use crate::mode::Mode;
 use crate::register::{Registers, RegisterContent};
 use crate::search::{Search, SearchDirection};
+use crate::selection::{Selection, VisualMode};
 use crate::syntax::Highlighter;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -33,6 +34,8 @@ pub struct Editor {
     registers: Registers,
     /// Pending operator (for commands like dd, yy)
     pending_op: Option<char>,
+    /// Current selection (for visual mode)
+    selection: Option<Selection>,
 }
 
 impl Default for Editor {
@@ -55,6 +58,7 @@ impl Editor {
             search: Search::new(),
             registers: Registers::new(),
             pending_op: None,
+            selection: None,
         }
     }
 
@@ -85,6 +89,7 @@ impl Editor {
             Mode::Insert => self.handle_insert_mode(key),
             Mode::Command => self.handle_command_mode(key),
             Mode::Search => self.handle_search_mode(key),
+            Mode::Visual | Mode::VisualLine | Mode::VisualBlock => self.handle_visual_mode(key),
         }
     }
 
@@ -299,6 +304,32 @@ impl Editor {
                 }
             }
             
+            // Visual mode
+            KeyCode::Char('v') => {
+                self.mode = Mode::Visual;
+                self.selection = Some(Selection::new(
+                    VisualMode::Char,
+                    self.cursor.line,
+                    self.cursor.col,
+                ));
+            }
+            KeyCode::Char('V') => {
+                self.mode = Mode::VisualLine;
+                self.selection = Some(Selection::new(
+                    VisualMode::Line,
+                    self.cursor.line,
+                    self.cursor.col,
+                ));
+            }
+            KeyCode::Char('v') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.mode = Mode::VisualBlock;
+                self.selection = Some(Selection::new(
+                    VisualMode::Block,
+                    self.cursor.line,
+                    self.cursor.col,
+                ));
+            }
+            
             _ => {}
         }
         false
@@ -463,6 +494,230 @@ impl Editor {
         false
     }
 
+    /// Handle keys in visual mode
+    fn handle_visual_mode(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            // Exit visual mode
+            KeyCode::Esc => {
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Movement (same as normal mode, but updates selection)
+            KeyCode::Char('h') | KeyCode::Left => {
+                self.cursor.move_left(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.cursor.move_down(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.cursor.move_up(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('l') | KeyCode::Right => {
+                self.cursor.move_right(&self.buffer);
+                self.update_selection();
+            }
+            
+            // Line start/end
+            KeyCode::Char('0') => {
+                self.cursor.move_to_line_start();
+                self.update_selection();
+            }
+            KeyCode::Char('$') => {
+                self.cursor.move_to_line_end(&self.buffer);
+                self.update_selection();
+            }
+            
+            // Buffer start/end
+            KeyCode::Char('g') => {
+                self.cursor.move_to_buffer_start();
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            KeyCode::Char('G') => {
+                self.cursor.move_to_buffer_end(&self.buffer);
+                self.update_selection();
+                self.ensure_cursor_visible();
+            }
+            
+            // Yank selection
+            KeyCode::Char('y') => {
+                if let Some(text) = self.get_selected_text() {
+                    let content = if self.mode == Mode::VisualLine {
+                        RegisterContent::Lines(text)
+                    } else {
+                        RegisterContent::Chars(text)
+                    };
+                    self.registers.yank(content);
+                    self.message = Some("Yanked".to_string());
+                }
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Delete selection
+            KeyCode::Char('d') | KeyCode::Char('x') => {
+                if let Some(text) = self.get_selected_text() {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    let content = if self.mode == Mode::VisualLine {
+                        RegisterContent::Lines(text)
+                    } else {
+                        RegisterContent::Chars(text)
+                    };
+                    self.registers.delete(content);
+                    self.delete_selection();
+                    self.message = Some("Deleted".to_string());
+                }
+                self.mode = Mode::Normal;
+                self.selection = None;
+            }
+            
+            // Switch visual modes
+            KeyCode::Char('v') => {
+                if self.mode == Mode::Visual {
+                    self.mode = Mode::Normal;
+                    self.selection = None;
+                } else {
+                    self.mode = Mode::Visual;
+                    if let Some(ref mut sel) = self.selection {
+                        sel.mode = VisualMode::Char;
+                    }
+                }
+            }
+            KeyCode::Char('V') => {
+                if self.mode == Mode::VisualLine {
+                    self.mode = Mode::Normal;
+                    self.selection = None;
+                } else {
+                    self.mode = Mode::VisualLine;
+                    if let Some(ref mut sel) = self.selection {
+                        sel.mode = VisualMode::Line;
+                    }
+                }
+            }
+            
+            _ => {}
+        }
+        false
+    }
+
+    /// Update the selection endpoint to current cursor position
+    fn update_selection(&mut self) {
+        if let Some(ref mut sel) = self.selection {
+            sel.update_cursor(self.cursor.line, self.cursor.col);
+        }
+    }
+
+    /// Get the text covered by the current selection
+    fn get_selected_text(&self) -> Option<String> {
+        let sel = self.selection.as_ref()?;
+        let (start_line, start_col, end_line, end_col) = sel.normalized();
+        
+        match sel.mode {
+            VisualMode::Char => {
+                let mut text = String::new();
+                for line_idx in start_line..=end_line {
+                    let line = self.buffer.line(line_idx);
+                    if start_line == end_line {
+                        // Single line selection
+                        let chars: Vec<char> = line.chars().collect();
+                        let end = (end_col + 1).min(chars.len());
+                        text.extend(&chars[start_col..end]);
+                    } else if line_idx == start_line {
+                        let chars: Vec<char> = line.chars().collect();
+                        text.extend(&chars[start_col..]);
+                    } else if line_idx == end_line {
+                        let chars: Vec<char> = line.chars().collect();
+                        let end = (end_col + 1).min(chars.len());
+                        text.extend(&chars[..end]);
+                    } else {
+                        text.push_str(&line);
+                    }
+                }
+                Some(text)
+            }
+            VisualMode::Line => {
+                let mut text = String::new();
+                for line_idx in start_line..=end_line {
+                    let line = self.buffer.line(line_idx);
+                    text.push_str(&line);
+                    if !line.ends_with('\n') {
+                        text.push('\n');
+                    }
+                }
+                Some(text)
+            }
+            VisualMode::Block => {
+                // TODO: Implement block selection text extraction
+                None
+            }
+        }
+    }
+
+    /// Delete the text covered by the current selection
+    fn delete_selection(&mut self) {
+        let sel = match self.selection.as_ref() {
+            Some(s) => s,
+            None => return,
+        };
+        let (start_line, start_col, end_line, end_col) = sel.normalized();
+        
+        match sel.mode {
+            VisualMode::Line => {
+                // Delete entire lines
+                for _ in start_line..=end_line {
+                    self.buffer.delete_line(start_line);
+                }
+                self.cursor.line = start_line.min(self.buffer.line_count().saturating_sub(1));
+                self.cursor.col = 0;
+            }
+            VisualMode::Char => {
+                // Character-wise deletion
+                if start_line == end_line {
+                    // Single line
+                    for _ in start_col..=end_col {
+                        self.buffer.delete_grapheme(start_line, start_col);
+                    }
+                    self.cursor.line = start_line;
+                    self.cursor.col = start_col;
+                } else {
+                    // Multi-line - delete from end to start to preserve positions
+                    // Delete end line portion
+                    let end_line_content = self.buffer.line(end_line);
+                    let end_chars: Vec<char> = end_line_content.chars().collect();
+                    let remaining_end: String = end_chars.iter().skip(end_col + 1).collect();
+                    
+                    // Delete middle lines (from end to start)
+                    for line_idx in (start_line + 1..=end_line).rev() {
+                        self.buffer.delete_line(line_idx);
+                    }
+                    
+                    // Truncate start line and append remaining end
+                    let start_line_content = self.buffer.line(start_line);
+                    let start_chars: Vec<char> = start_line_content.chars().collect();
+                    let new_line: String = start_chars.iter().take(start_col).collect::<String>() + &remaining_end;
+                    
+                    self.buffer.delete_line(start_line);
+                    self.buffer.insert_line_above(start_line.min(self.buffer.line_count()), &new_line);
+                    
+                    self.cursor.line = start_line;
+                    self.cursor.col = start_col;
+                }
+            }
+            VisualMode::Block => {
+                // TODO: Implement block deletion
+            }
+        }
+        
+        self.cursor.clamp(&self.buffer);
+        self.ensure_cursor_visible();
+    }
+
     /// Ensure cursor is visible by adjusting scroll offset
     fn ensure_cursor_visible(&mut self) {
         // Leave some margin
@@ -511,5 +766,9 @@ impl Editor {
 
     pub fn search(&self) -> &Search {
         &self.search
+    }
+
+    pub fn selection(&self) -> Option<&Selection> {
+        self.selection.as_ref()
     }
 }
