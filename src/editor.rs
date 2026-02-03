@@ -41,6 +41,8 @@ pub struct Editor {
     last_find: Option<(char, bool)>,  // (char, forward)
     /// Numeric prefix for commands (e.g., 5j, 3w)
     numeric_prefix: String,
+    /// Buffer manager for multiple buffers
+    buffer_manager: crate::buffer_manager::BufferManager,
 }
 
 impl Default for Editor {
@@ -66,6 +68,7 @@ impl Editor {
             selection: None,
             last_find: None,
             numeric_prefix: String::new(),
+            buffer_manager: crate::buffer_manager::BufferManager::new(),
         }
     }
 
@@ -745,6 +748,17 @@ impl Editor {
             }
             "noh" | "nohlsearch" => {
                 self.search.clear_highlight();
+            }
+            _ if cmd.starts_with("e ") => {
+                let path = cmd.strip_prefix("e ").unwrap().trim();
+                match self.buffer_manager.open_file(path) {
+                    Ok(_) => {
+                        self.message = Some(format!("Opened in new buffer: {}", path));
+                    }
+                    Err(e) => {
+                        self.message = Some(format!("Error opening file: {}", e));
+                    }
+                }
             }
             _ => {
                 self.message = Some(format!("Unknown command: {}", cmd));

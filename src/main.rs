@@ -5,6 +5,7 @@
 
 mod buffer;
 mod cursor;
+mod buffer_manager;
 mod editor;
 mod history;
 mod mode;

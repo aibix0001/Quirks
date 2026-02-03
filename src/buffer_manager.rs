@@ -1,0 +1,47 @@
+pub struct BufferManager {
+    buffers: Vec<crate::buffer::Buffer>,
+    current: usize,
+}
+
+impl BufferManager {
+    pub fn new() -> Self {
+        Self {
+            buffers: Vec::new(),
+            current: 0,
+        }
+    }
+
+    /// Open a new buffer from a file and push it to the manager
+    pub fn open_file(&mut self, path: &str) -> anyhow::Result<()> {
+        let buffer = crate::buffer::Buffer::from_file(path)?;
+        self.buffers.push(buffer);
+        self.current = self.buffers.len() - 1;
+        Ok(())
+    }
+
+    /// Return the current buffer
+    pub fn current_buffer(&mut self) -> &mut crate::buffer::Buffer {
+        &mut self.buffers[self.current]
+    }
+
+    /// Switch to a buffer by index (0-based)
+    pub fn switch_to(&mut self, idx: usize) -> anyhow::Result<()> {
+        if idx >= self.buffers.len() {
+            return Err(anyhow::anyhow!("Buffer index out of range"));
+        }
+        self.current = idx;
+        Ok(())
+    }
+
+    /// Close current buffer and remove it
+    pub fn close_current(&mut self) -> anyhow::Result<()> {
+        if self.buffers.is_empty() {
+            return Ok(());
+        }
+        self.buffers.remove(self.current);
+        if self.current >= self.buffers.len() && !self.buffers.is_empty() {
+            self.current = self.buffers.len() - 1;
+        }
+        Ok(())
+    }
+}
