@@ -331,4 +331,30 @@ impl Buffer {
         
         self.modified = true;
     }
+
+    /// Indent a line by adding spaces at the beginning
+    pub fn indent_line(&mut self, line: usize, spaces: usize) {
+        if line >= self.line_count() {
+            return;
+        }
+        let indent: String = " ".repeat(spaces);
+        let pos = self.rope.line_to_char(line);
+        self.rope.insert(pos, &indent);
+        self.modified = true;
+    }
+
+    /// Outdent a line by removing leading spaces
+    pub fn outdent_line(&mut self, line: usize, max_spaces: usize) {
+        if line >= self.line_count() {
+            return;
+        }
+        let line_content: String = self.rope.line(line).chars().collect();
+        let leading_spaces = line_content.chars().take_while(|c| *c == ' ').count();
+        let to_remove = leading_spaces.min(max_spaces);
+        if to_remove > 0 {
+            let start = self.rope.line_to_char(line);
+            self.rope.remove(start..(start + to_remove));
+            self.modified = true;
+        }
+    }
 }

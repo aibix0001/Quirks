@@ -342,6 +342,29 @@ impl Editor {
                 }
             }
             
+            // Indent (>>)
+            KeyCode::Char('>') => {
+                if self.pending_op == Some('>') {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    self.buffer.indent_line(self.cursor.line, 4);
+                    self.pending_op = None;
+                } else {
+                    self.pending_op = Some('>');
+                }
+            }
+            
+            // Outdent (<<)
+            KeyCode::Char('<') => {
+                if self.pending_op == Some('<') {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    self.buffer.outdent_line(self.cursor.line, 4);
+                    self.cursor.clamp(&self.buffer);
+                    self.pending_op = None;
+                } else {
+                    self.pending_op = Some('<');
+                }
+            }
+            
             // Paste after (p)
             KeyCode::Char('p') => {
                 if let Some(content) = self.registers.get_unnamed() {
