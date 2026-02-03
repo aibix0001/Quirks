@@ -828,7 +828,7 @@ impl Editor {
                 self.message = Some("Press q/Esc/Enter to close help".to_string());
             }
             "version" | "ver" => {
-                self.message = Some("Quirks v0.3.0 - A modal text editor".to_string());
+                self.message = Some("Quirks v0.3.1 - A modal text editor".to_string());
             }
             "set" => {
                 // Show current settings
@@ -838,6 +838,22 @@ impl Editor {
                     self.config.line_numbers,
                     self.config.syntax_highlighting
                 ));
+            }
+            "set number" | "set nu" => {
+                self.config.line_numbers = true;
+                self.message = Some("Line numbers enabled".to_string());
+            }
+            "set nonumber" | "set nonu" => {
+                self.config.line_numbers = false;
+                self.message = Some("Line numbers disabled".to_string());
+            }
+            "set syntax" | "set syn" => {
+                self.config.syntax_highlighting = true;
+                self.message = Some("Syntax highlighting enabled".to_string());
+            }
+            "set nosyntax" | "set nosyn" => {
+                self.config.syntax_highlighting = false;
+                self.message = Some("Syntax highlighting disabled".to_string());
             }
             "tabnew" | "new" => {
                 // Create a new empty buffer
