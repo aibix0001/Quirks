@@ -23,7 +23,7 @@ Quirks aims to be:
 
 ## License
 
-TBD
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
