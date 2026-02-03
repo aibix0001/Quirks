@@ -269,3 +269,51 @@ pub mod colors {
     pub const FUNCTION: Color = Color::Blue;
     pub const OPERATOR: Color = Color::White;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_highlighter_new() {
+        let highlighter = Highlighter::new();
+        assert!(highlighter.current_syntax_name().is_none());
+    }
+
+    #[test]
+    fn test_highlighter_set_syntax() {
+        let mut highlighter = Highlighter::new();
+        highlighter.set_syntax_for_extension("rs");
+        assert_eq!(highlighter.current_syntax_name(), Some("Rust"));
+    }
+
+    #[test]
+    fn test_highlighter_python() {
+        let mut highlighter = Highlighter::new();
+        highlighter.set_syntax_for_extension("py");
+        assert_eq!(highlighter.current_syntax_name(), Some("Python"));
+    }
+
+    #[test]
+    fn test_highlighter_unknown() {
+        let mut highlighter = Highlighter::new();
+        highlighter.set_syntax_for_extension("xyz");
+        assert!(highlighter.current_syntax_name().is_none());
+    }
+
+    #[test]
+    fn test_highlight_rust_keyword() {
+        let mut highlighter = Highlighter::new();
+        highlighter.set_syntax_for_extension("rs");
+        let spans = highlighter.highlight_line("fn main() {");
+        assert!(!spans.is_empty());
+    }
+
+    #[test]
+    fn test_highlight_comment() {
+        let mut highlighter = Highlighter::new();
+        highlighter.set_syntax_for_extension("rs");
+        let spans = highlighter.highlight_line("// this is a comment");
+        assert!(!spans.is_empty());
+    }
+}
