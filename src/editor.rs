@@ -958,6 +958,14 @@ impl Editor {
                 // Show digraphs (placeholder)
                 self.message = Some("Digraphs not yet implemented".to_string());
             }
+            "abbreviate" | "abbr" => {
+                // Abbreviations (placeholder)
+                self.message = Some("Abbreviations not yet implemented".to_string());
+            }
+            "colorscheme" | "colo" => {
+                // Color scheme (placeholder)
+                self.message = Some("Color schemes not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
