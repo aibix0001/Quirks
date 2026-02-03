@@ -168,10 +168,19 @@ impl Highlighter {
         let chars: Vec<char> = line.chars().collect();
         let mut i = 0;
 
+        // Helper: check if chars starting at index match a prefix string
+        let chars_start_with = |chars: &[char], idx: usize, prefix: &str| -> bool {
+            let prefix_chars: Vec<char> = prefix.chars().collect();
+            if idx + prefix_chars.len() > chars.len() {
+                return false;
+            }
+            chars[idx..idx + prefix_chars.len()] == prefix_chars[..]
+        };
+
         while i < chars.len() {
             // Check for comments
             if let Some(comment_prefix) = syntax.comment_single {
-                if line[i..].starts_with(comment_prefix) {
+                if chars_start_with(&chars, i, comment_prefix) {
                     spans.push(HighlightSpan {
                         start: i,
                         end: chars.len(),

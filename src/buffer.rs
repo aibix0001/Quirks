@@ -391,4 +391,21 @@ mod tests {
         buffer.insert(0, "test");
         assert!(buffer.is_modified());
     }
+
+    #[test]
+    fn test_buffer_umlauts() {
+        let mut buffer = Buffer::new();
+        buffer.insert(0, "Größe äöü ÄÖÜ ß");
+        assert!(buffer.line(0).contains("Größe"));
+        assert!(buffer.line(0).contains("äöü"));
+        assert!(buffer.line(0).contains("ß"));
+    }
+
+    #[test]
+    fn test_buffer_grapheme_count() {
+        let mut buffer = Buffer::new();
+        buffer.insert(0, "äöü");
+        // Should be 3 graphemes, not 6 bytes
+        assert_eq!(buffer.line_len(0), 3);
+    }
 }
