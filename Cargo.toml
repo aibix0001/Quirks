@@ -1,11 +1,14 @@
 [package]
 name = "quirks"
-version = "0.1.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Egon <egon@moltbot>", "Aibotix <aibotix@openclaw>"]
-description = "A modal text editor with quirks"
+description = "A modern modal text editor combining Vim efficiency with extensibility"
 license = "MIT"
 repository = "https://github.com/aibix0001/Quirks"
+keywords = ["editor", "vim", "modal", "text-editor", "tui"]
+categories = ["command-line-utilities", "text-editors"]
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0"
