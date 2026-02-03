@@ -1,53 +1,74 @@
-//! Quirks - A modal text editor with character
+//! Quirks - A modern text editor
 //!
-//! Born from Vim's efficiency and Emacs' extensibility.
+//! Born from the union of Vim's modal efficiency and Emacs' extensibility.
+//! Created by Egon and Aibotix.
 
 mod buffer;
+mod cursor;
+mod editor;
+mod mode;
+mod view;
 
-use buffer::Buffer;
-use std::env;
+use anyhow::Result;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyModifiers},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::{env, io};
 
-fn main() {
+fn main() -> Result<()> {
+    // Get file argument if provided
     let args: Vec<String> = env::args().collect();
-    
-    // Load file if provided, otherwise create empty buffer
-    let buffer = if args.len() > 1 {
-        match Buffer::from_file(&args[1]) {
-            Ok(buf) => {
-                eprintln!("Loaded: {} ({} lines)", args[1], buf.line_count());
-                buf
-            }
-            Err(e) => {
-                eprintln!("Error loading file: {}", e);
-                Buffer::new()
-            }
-        }
-    } else {
-        eprintln!("Quirks v0.1.0 - No file specified");
-        Buffer::new()
-    };
+    let file_path = args.get(1).map(|s| s.as_str());
 
-    // TODO: Initialize TUI
-    // TODO: Enter event loop
-    // TODO: Render buffer content
-    
-    // For now, just print buffer info
-    println!("Buffer: {} chars, {} lines", 
-             buffer.char_count(), 
-             buffer.line_count());
-    
-    if let Some(path) = buffer.filepath() {
-        println!("File: {}", path.display());
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // Create editor
+    let mut editor = editor::Editor::new();
+    if let Some(path) = file_path {
+        editor.open_file(path)?;
     }
 
-    // Print first 10 lines as preview
-    println!("\n--- Preview ---");
-    for i in 0..buffer.line_count().min(10) {
-        if let Some(line) = buffer.line(i) {
-            print!("{:4} │ {}", i + 1, line);
+    // Main loop
+    let result = run_editor(&mut terminal, &mut editor);
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+
+    result
+}
+
+fn run_editor(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    editor: &mut editor::Editor,
+) -> Result<()> {
+    loop {
+        // Draw
+        terminal.draw(|frame| {
+            view::render(frame, editor);
+        })?;
+
+        // Handle input
+        if let Event::Key(key) = event::read()? {
+            // Ctrl+Q to quit (always)
+            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('q') {
+                break;
+            }
+
+            // Pass to editor
+            if editor.handle_key(key) {
+                break;
+            }
         }
     }
-    if buffer.line_count() > 10 {
-        println!("... ({} more lines)", buffer.line_count() - 10);
-    }
+    Ok(())
 }

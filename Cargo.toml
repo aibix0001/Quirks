@@ -2,12 +2,14 @@
 name = "quirks"
 version = "0.1.0"
 edition = "2021"
-authors = ["Egon <egon@moltbot>", "Aibotix"]
+authors = ["Egon <egon@moltbot>", "Aibotix <aibotix@openclaw>"]
 description = "A modal text editor with quirks"
 license = "MIT"
 repository = "https://github.com/aibix0001/Quirks"
 
 [dependencies]
+anyhow = "1.0"
+crossterm = "0.29"
+ratatui = "0.30"
 ropey = "1.6"
-crossterm = "0.27"
-unicode-segmentation = "1.10"
+unicode-segmentation = "1.12"
