@@ -116,6 +116,11 @@ impl Editor {
             KeyCode::Char('g') => self.cursor.move_to_buffer_start(),
             KeyCode::Char('G') => self.cursor.move_to_buffer_end(&self.buffer),
             
+            // Word motions
+            KeyCode::Char('w') => self.cursor.move_word_forward(&self.buffer),
+            KeyCode::Char('b') => self.cursor.move_word_backward(&self.buffer),
+            KeyCode::Char('e') => self.cursor.move_word_end(&self.buffer),
+            
             // Mode switching
             KeyCode::Char('i') => self.mode = Mode::Insert,
             KeyCode::Char('a') => {
@@ -526,6 +531,20 @@ impl Editor {
                 self.cursor.move_to_buffer_end(&self.buffer);
                 self.update_selection();
                 self.ensure_cursor_visible();
+            }
+            
+            // Word motions
+            KeyCode::Char('w') => {
+                self.cursor.move_word_forward(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('b') => {
+                self.cursor.move_word_backward(&self.buffer);
+                self.update_selection();
+            }
+            KeyCode::Char('e') => {
+                self.cursor.move_word_end(&self.buffer);
+                self.update_selection();
             }
             
             // Yank selection
