@@ -679,6 +679,16 @@ impl Editor {
                 self.mode = Mode::VisualBlock;
             }
             
+            // File info (Ctrl+G)
+            KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let lines = self.buffer.line_count();
+                let chars = self.buffer.len();
+                let file_name = self.buffer.file_name().unwrap_or("[No Name]");
+                let modified = if self.buffer.is_modified() { " [Modified]" } else { "" };
+                let pos = format!("line {}/{}", self.cursor.line + 1, lines);
+                self.message = Some(format!("\"{}\"{} {} chars, {}", file_name, modified, chars, pos));
+            }
+            
             _ => {
                 // Clear numeric prefix for commands that don't use it
                 self.numeric_prefix.clear();
