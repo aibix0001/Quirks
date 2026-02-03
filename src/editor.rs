@@ -48,6 +48,8 @@ pub struct Editor {
     buffer_manager: crate::buffer_manager::BufferManager,
     /// GPU info provider
     gpu_info: GpuInfo,
+    /// Editor configuration
+    config: crate::config::Config,
 }
 
 impl Default for Editor {
@@ -76,7 +78,13 @@ impl Editor {
             pending_g: false,
             buffer_manager: crate::buffer_manager::BufferManager::new(),
             gpu_info: GpuInfo::new(),
+            config: crate::config::Config::load(),
         }
+    }
+
+    /// Get the editor configuration
+    pub fn config(&self) -> &crate::config::Config {
+        &self.config
     }
 
     /// Open a file in the editor
@@ -532,7 +540,7 @@ impl Editor {
             KeyCode::Char('>') => {
                 if self.pending_op == Some('>') {
                     self.buffer.checkpoint(self.cursor.line, self.cursor.col);
-                    self.buffer.indent_line(self.cursor.line, 4);
+                    self.buffer.indent_line(self.cursor.line, self.config.tab_width);
                     self.pending_op = None;
                 } else {
                     self.pending_op = Some('>');
@@ -543,7 +551,7 @@ impl Editor {
             KeyCode::Char('<') => {
                 if self.pending_op == Some('<') {
                     self.buffer.checkpoint(self.cursor.line, self.cursor.col);
-                    self.buffer.outdent_line(self.cursor.line, 4);
+                    self.buffer.outdent_line(self.cursor.line, self.config.tab_width);
                     self.cursor.clamp(&self.buffer);
                     self.pending_op = None;
                 } else {
