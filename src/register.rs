@@ -55,9 +55,8 @@ pub struct Registers {
     /// Numbered registers (0-9)
     /// 0 = last yank, 1-9 = last deletes (1 is most recent)
     numbered: [Option<RegisterContent>; 10],
-    /// The black hole register (_) - discards content
-    /// (we don't actually store anything here)
-    /// Read-only registers (%, #, etc.) would be computed
+    // Note: The black hole register (_) discards content - we don't store anything
+    // Read-only registers (%, #, etc.) would be computed on access
 }
 
 impl Registers {

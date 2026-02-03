@@ -244,9 +244,8 @@ impl Buffer {
         if line >= self.line_count() {
             return None;
         }
-        let line_start = self.rope.line_to_char(line);
-        let line_text = self.rope.line(line);
-        let graphemes: Vec<&str> = line_text.to_string().graphemes(true).collect();
+        let line_text = self.line(line);
+        let graphemes: Vec<&str> = line_text.graphemes(true).collect();
         if col >= graphemes.len() {
             return None;
         }
