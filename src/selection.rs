@@ -154,3 +154,62 @@ impl Register {
         self.content.is_empty()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_selection_new() {
+        let sel = Selection::new(VisualMode::Char, 5, 10);
+        assert_eq!(sel.anchor_line, 5);
+        assert_eq!(sel.anchor_col, 10);
+        assert_eq!(sel.cursor_line, 5);
+        assert_eq!(sel.cursor_col, 10);
+    }
+
+    #[test]
+    fn test_selection_update_cursor() {
+        let mut sel = Selection::new(VisualMode::Char, 0, 0);
+        sel.update_cursor(5, 10);
+        assert_eq!(sel.cursor_line, 5);
+        assert_eq!(sel.cursor_col, 10);
+    }
+
+    #[test]
+    fn test_selection_normalized() {
+        let mut sel = Selection::new(VisualMode::Char, 5, 10);
+        sel.update_cursor(2, 3);
+        let (start_line, start_col, end_line, end_col) = sel.normalized();
+        assert_eq!(start_line, 2);
+        assert_eq!(start_col, 3);
+        assert_eq!(end_line, 5);
+        assert_eq!(end_col, 10);
+    }
+
+    #[test]
+    fn test_visual_mode_variants() {
+        let char_mode = VisualMode::Char;
+        let line_mode = VisualMode::Line;
+        let block_mode = VisualMode::Block;
+        
+        // Just ensure they can be created and compared
+        assert_ne!(char_mode, line_mode);
+        assert_ne!(line_mode, block_mode);
+    }
+
+    #[test]
+    fn test_register_new() {
+        let reg = Register::new();
+        assert!(reg.is_empty());
+    }
+
+    #[test]
+    fn test_register_set_get() {
+        let mut reg = Register::new();
+        reg.set("hello".to_string(), false);
+        let (content, linewise) = reg.get();
+        assert_eq!(content, "hello");
+        assert!(!linewise);
+    }
+}

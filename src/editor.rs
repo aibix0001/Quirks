@@ -222,7 +222,7 @@ impl Editor {
             KeyCode::Char('$') => self.cursor.move_to_line_end(&self.buffer),
             
             // Buffer start/end
-            KeyCode::Char('g') => {
+            KeyCode::Char('g') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 if self.pending_g {
                     // 'gg' - move to buffer start
                     self.cursor.move_to_buffer_start();
@@ -274,7 +274,7 @@ impl Editor {
                 }
                 self.numeric_prefix.clear();
             }
-            KeyCode::Char('b') => {
+            KeyCode::Char('b') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 let count = if self.numeric_prefix.is_empty() {
                     1
                 } else {
@@ -298,7 +298,7 @@ impl Editor {
             }
             
             // Find character on line
-            KeyCode::Char('f') => self.pending_op = Some('f'),
+            KeyCode::Char('f') if !key.modifiers.contains(KeyModifiers::CONTROL) => self.pending_op = Some('f'),
             KeyCode::Char('F') => self.pending_op = Some('F'),
             KeyCode::Char(';') => {
                 // Repeat last find
