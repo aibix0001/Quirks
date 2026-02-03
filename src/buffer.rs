@@ -359,3 +359,36 @@ impl Buffer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_buffer_new() {
+        let buffer = Buffer::new();
+        assert_eq!(buffer.line_count(), 1);
+    }
+
+    #[test]
+    fn test_buffer_insert() {
+        let mut buffer = Buffer::new();
+        buffer.insert(0, "Hello");
+        assert!(buffer.line(0).contains("Hello"));
+    }
+
+    #[test]
+    fn test_buffer_multiline() {
+        let mut buffer = Buffer::new();
+        buffer.insert(0, "Line 1\nLine 2\nLine 3");
+        assert_eq!(buffer.line_count(), 3);
+    }
+
+    #[test]
+    fn test_buffer_modified() {
+        let mut buffer = Buffer::new();
+        assert!(!buffer.is_modified());
+        buffer.insert(0, "test");
+        assert!(buffer.is_modified());
+    }
+}
