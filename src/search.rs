@@ -238,3 +238,53 @@ impl Search {
         self.pattern.is_empty()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_new() {
+        let search = Search::new();
+        assert!(search.is_empty());
+        assert!(!search.highlight_active);
+    }
+
+    #[test]
+    fn test_search_push_pop() {
+        let mut search = Search::new();
+        search.start(SearchDirection::Forward);
+        search.push_char('t');
+        search.push_char('e');
+        search.push_char('s');
+        search.push_char('t');
+        assert_eq!(search.pattern(), "test");
+        assert!(search.pop_char());
+        assert_eq!(search.pattern(), "tes");
+    }
+
+    #[test]
+    fn test_search_direction() {
+        let mut search = Search::new();
+        search.start(SearchDirection::Forward);
+        assert_eq!(search.direction(), SearchDirection::Forward);
+        search.start(SearchDirection::Backward);
+        assert_eq!(search.direction(), SearchDirection::Backward);
+    }
+
+    #[test]
+    fn test_search_execute() {
+        let mut search = Search::new();
+        search.start(SearchDirection::Forward);
+        search.push_char('h');
+        search.push_char('e');
+        search.push_char('l');
+        search.push_char('l');
+        search.push_char('o');
+        
+        let lines = vec!["hello world".to_string(), "hello again".to_string()];
+        search.execute(&lines, 0, 0);
+        
+        assert_eq!(search.matches().len(), 2);
+    }
+}
