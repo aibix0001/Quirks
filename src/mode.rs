@@ -10,6 +10,10 @@ pub enum Mode {
     Insert,
     /// Command mode - entering ex-style commands (:w, :q, etc.)
     Command,
+    /// Search forward mode (/)
+    SearchForward,
+    /// Search backward mode (?)
+    SearchBackward,
 }
 
 impl Mode {
@@ -19,6 +23,8 @@ impl Mode {
             Mode::Normal => "NORMAL",
             Mode::Insert => "INSERT",
             Mode::Command => "COMMAND",
+            Mode::SearchForward => "SEARCH",
+            Mode::SearchBackward => "SEARCH",
         }
     }
 
@@ -28,7 +34,13 @@ impl Mode {
             Mode::Normal => CursorStyle::Block,
             Mode::Insert => CursorStyle::Bar,
             Mode::Command => CursorStyle::Block,
+            Mode::SearchForward | Mode::SearchBackward => CursorStyle::Block,
         }
+    }
+    
+    /// Check if in any search mode
+    pub fn is_search(&self) -> bool {
+        matches!(self, Mode::SearchForward | Mode::SearchBackward)
     }
 }
 

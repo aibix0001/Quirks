@@ -3,6 +3,7 @@
 use crate::buffer::Buffer;
 use crate::cursor::Cursor;
 use crate::mode::Mode;
+use crate::search::{Search, SearchDirection};
 use crate::syntax::Highlighter;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -19,6 +20,10 @@ pub struct Editor {
     scroll_offset: usize,
     /// Command buffer for : commands
     command_buffer: String,
+    /// Search buffer for / and ? commands
+    search_buffer: String,
+    /// Search state
+    search: Search,
     /// Message to display in command line
     message: Option<String>,
     /// Terminal height (for scroll calculations)
@@ -41,6 +46,8 @@ impl Editor {
             mode: Mode::Normal,
             scroll_offset: 0,
             command_buffer: String::new(),
+            search_buffer: String::new(),
+            search: Search::new(),
             message: None,
             viewport_height: 24, // Default, updated on resize
             highlighter: Highlighter::new(),
@@ -73,6 +80,7 @@ impl Editor {
             Mode::Normal => self.handle_normal_mode(key),
             Mode::Insert => self.handle_insert_mode(key),
             Mode::Command => self.handle_command_mode(key),
+            Mode::SearchForward | Mode::SearchBackward => self.handle_search_mode(key),
         }
     }
 
@@ -138,6 +146,40 @@ impl Editor {
             KeyCode::Char(':') => {
                 self.mode = Mode::Command;
                 self.command_buffer.clear();
+            }
+            
+            // Search
+            KeyCode::Char('/') => {
+                self.mode = Mode::SearchForward;
+                self.search_buffer.clear();
+            }
+            KeyCode::Char('?') => {
+                self.mode = Mode::SearchBackward;
+                self.search_buffer.clear();
+            }
+            KeyCode::Char('n') => {
+                // Next match
+                if let Some(m) = self.search.jump_next(&self.cursor) {
+                    self.cursor.line = m.line;
+                    self.cursor.col = m.start_col;
+                    self.ensure_cursor_visible();
+                    let idx = self.search.current_match_index().unwrap_or(0) + 1;
+                    let total = self.search.match_count();
+                    self.message = Some(format!("[{}/{}]", idx, total));
+                } else if self.search.pattern().is_empty() {
+                    self.message = Some("No previous search".to_string());
+                }
+            }
+            KeyCode::Char('N') => {
+                // Previous match
+                if let Some(m) = self.search.jump_prev(&self.cursor) {
+                    self.cursor.line = m.line;
+                    self.cursor.col = m.start_col;
+                    self.ensure_cursor_visible();
+                    let idx = self.search.current_match_index().unwrap_or(0) + 1;
+                    let total = self.search.match_count();
+                    self.message = Some(format!("[{}/{}]", idx, total));
+                }
             }
             
             _ => {}
@@ -211,6 +253,56 @@ impl Editor {
             }
             KeyCode::Char(c) => {
                 self.command_buffer.push(c);
+            }
+            _ => {}
+        }
+        false
+    }
+
+    /// Handle keys in search mode
+    fn handle_search_mode(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc => {
+                self.mode = Mode::Normal;
+                self.search_buffer.clear();
+            }
+            KeyCode::Enter => {
+                // Execute search
+                let direction = if self.mode == Mode::SearchForward {
+                    SearchDirection::Forward
+                } else {
+                    SearchDirection::Backward
+                };
+                
+                if !self.search_buffer.is_empty() {
+                    self.search.search(&self.search_buffer, direction, &self.buffer);
+                    
+                    // Jump to first match
+                    if let Some(m) = self.search.next_match(&self.cursor, &self.buffer) {
+                        self.cursor.line = m.line;
+                        self.cursor.col = m.start_col;
+                        self.ensure_cursor_visible();
+                        
+                        let total = self.search.match_count();
+                        if total > 0 {
+                            let idx = self.search.current_match_index().unwrap_or(0) + 1;
+                            self.message = Some(format!("[{}/{}]", idx, total));
+                        }
+                    } else {
+                        self.message = Some(format!("Pattern not found: {}", self.search_buffer));
+                    }
+                }
+                
+                self.mode = Mode::Normal;
+                self.search_buffer.clear();
+            }
+            KeyCode::Backspace => {
+                if self.search_buffer.pop().is_none() {
+                    self.mode = Mode::Normal;
+                }
+            }
+            KeyCode::Char(c) => {
+                self.search_buffer.push(c);
             }
             _ => {}
         }
@@ -302,5 +394,13 @@ impl Editor {
 
     pub fn highlighter(&self) -> &Highlighter {
         &self.highlighter
+    }
+
+    pub fn search(&self) -> &Search {
+        &self.search
+    }
+
+    pub fn search_buffer(&self) -> &str {
+        &self.search_buffer
     }
 }
