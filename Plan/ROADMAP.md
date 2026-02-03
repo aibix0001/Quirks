@@ -44,10 +44,21 @@
 **Status:** 🔴 Not Started
 
 - [ ] Windows support
-- [ ] macOS support
 - [ ] Comprehensive documentation
 - [ ] Package distribution (cargo, homebrew, etc.)
 - [ ] Performance optimization
+
+---
+
+## Platform Support
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| Linux | 🟢 Primary | Development started |
+| macOS | 🟢 Parallel | Aibotix developing on Mac — parallel to Linux |
+| Windows | 🔴 Planned | v1.0 target |
+
+*Decision (2026-02-03): macOS development moved up to parallel with Linux, not deferred to v1.0.*
 
 ---
 
