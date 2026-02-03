@@ -146,26 +146,29 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         Style::default().fg(Color::White),
     );
 
-    // Position
+    // Position and percentage
+    let line_count = buffer.line_count();
+    let percent = if line_count <= 1 {
+        "All".to_string()
+    } else {
+        let pct = ((cursor.line + 1) * 100) / line_count;
+        format!("{}%", pct)
+    };
     let pos_span = Span::styled(
-        format!(" {}:{} ", cursor.line + 1, cursor.col + 1),
+        format!(" {}:{} {} Ln {} ", cursor.line + 1, cursor.col + 1, percent, line_count),
         Style::default().fg(Color::DarkGray),
+    );
+
+    // Syntax indicator
+    let syntax_name = editor.highlighter().current_syntax_name().unwrap_or("Plain");
+    let syntax_span = Span::styled(
+        format!(" {} ", syntax_name),
+        Style::default().fg(Color::Cyan),
     );
 
     // Build status line
     let left = vec![mode_span, file_span];
-    let mut right = vec![pos_span];
-    // GPU usage display
-    let gpu_usage = if let Some(usage) = editor.gpu_info().get_usage() {
-        format!(" GPU: {}%", usage)
-    } else {
-        " GPU: N/A".to_string()
-    };
-    let gpu_span = Span::styled(
-        gpu_usage,
-        Style::default().fg(Color::Yellow),
-    );
-    right.push(gpu_span);
+    let mut right = vec![syntax_span, pos_span];
 
     let status = Line::from(left);
     let status_widget = Paragraph::new(status)
