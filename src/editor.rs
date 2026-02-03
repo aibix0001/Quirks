@@ -203,6 +203,47 @@ impl Editor {
                 }
             }
             
+            // Change line (cc)
+            KeyCode::Char('c') => {
+                if self.pending_op == Some('c') {
+                    // cc - delete line content and enter insert mode
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    let line = self.buffer.line(self.cursor.line);
+                    let content = line.trim_end_matches('\n').to_string();
+                    if !content.is_empty() {
+                        self.registers.delete(RegisterContent::Chars(content));
+                    }
+                    // Clear the line content but keep the line
+                    let line_start = self.buffer.line_to_byte(self.cursor.line);
+                    let line_end = if self.cursor.line + 1 < self.buffer.line_count() {
+                        self.buffer.line_to_byte(self.cursor.line + 1) - 1
+                    } else {
+                        self.buffer.len()
+                    };
+                    if line_start < line_end {
+                        self.buffer.delete(line_start, line_end);
+                    }
+                    self.cursor.col = 0;
+                    self.mode = Mode::Insert;
+                    self.pending_op = None;
+                } else {
+                    self.pending_op = Some('c');
+                }
+            }
+            
+            // Join lines (J)
+            KeyCode::Char('J') => {
+                if self.cursor.line + 1 < self.buffer.line_count() {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    // Get current line length (for cursor positioning)
+                    let current_line_len = self.buffer.line_len(self.cursor.line);
+                    // Join the next line to current
+                    self.buffer.join_lines(self.cursor.line);
+                    // Move cursor to join point
+                    self.cursor.col = current_line_len;
+                }
+            }
+            
             // Paste after (p)
             KeyCode::Char('p') => {
                 if let Some(content) = self.registers.get_unnamed() {

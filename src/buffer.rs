@@ -80,6 +80,16 @@ impl Buffer {
         self.rope.len_lines().max(1)
     }
 
+    /// Get the total byte length of the buffer
+    pub fn len(&self) -> usize {
+        self.rope.len_bytes()
+    }
+
+    /// Check if buffer is empty
+    pub fn is_empty(&self) -> bool {
+        self.rope.len_bytes() == 0
+    }
+
     /// Get the length of a line in grapheme clusters
     pub fn line_len(&self, line_idx: usize) -> usize {
         if line_idx >= self.rope.len_lines() {
@@ -292,6 +302,33 @@ impl Buffer {
     pub fn insert_line_above(&mut self, line: usize, text: &str) {
         let insert_pos = self.rope.line_to_char(line);
         self.rope.insert(insert_pos, text);
+        self.modified = true;
+    }
+
+    /// Join the next line to the current line
+    pub fn join_lines(&mut self, line: usize) {
+        if line + 1 >= self.line_count() {
+            return;
+        }
+        
+        // Find the newline at the end of current line
+        let next_line_start = self.rope.line_to_char(line + 1);
+        let newline_pos = next_line_start - 1;
+        
+        // Remove the newline
+        self.rope.remove(newline_pos..next_line_start);
+        
+        // Get the (now joined) line and check if we need to add a space
+        let current_line: String = self.rope.line(line).chars().collect();
+        let trimmed = current_line.trim_end();
+        
+        // If the joined content doesn't already have a space, insert one
+        if !trimmed.is_empty() && !trimmed.ends_with(' ') {
+            // Find where to insert the space (after old line content)
+            let insert_pos = self.rope.line_to_char(line) + trimmed.len();
+            self.rope.insert_char(insert_pos, ' ');
+        }
+        
         self.modified = true;
     }
 }
