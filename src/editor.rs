@@ -36,6 +36,8 @@ pub struct Editor {
     pending_op: Option<char>,
     /// Current selection (for visual mode)
     selection: Option<Selection>,
+    /// Last find character and direction (for f, F, ; commands)
+    last_find: Option<(char, bool)>,  // (char, forward)
 }
 
 impl Default for Editor {
@@ -59,6 +61,7 @@ impl Editor {
             registers: Registers::new(),
             pending_op: None,
             selection: None,
+            last_find: None,
         }
     }
 
@@ -113,6 +116,17 @@ impl Editor {
             return false;
         }
 
+        // Handle pending find (f/F)
+        if self.pending_op == Some('f') || self.pending_op == Some('F') {
+            if let KeyCode::Char(c) = key.code {
+                let forward = self.pending_op == Some('f');
+                self.last_find = Some((c, forward));
+                self.find_char_on_line(c, forward);
+            }
+            self.pending_op = None;
+            return false;
+        }
+
         match key.code {
             // Movement
             KeyCode::Char('h') | KeyCode::Left => self.cursor.move_left(&self.buffer),
@@ -148,6 +162,22 @@ impl Editor {
             KeyCode::Char('w') => self.cursor.move_word_forward(&self.buffer),
             KeyCode::Char('b') => self.cursor.move_word_backward(&self.buffer),
             KeyCode::Char('e') => self.cursor.move_word_end(&self.buffer),
+            
+            // Find character on line
+            KeyCode::Char('f') => self.pending_op = Some('f'),
+            KeyCode::Char('F') => self.pending_op = Some('F'),
+            KeyCode::Char(';') => {
+                // Repeat last find
+                if let Some((c, forward)) = self.last_find {
+                    self.find_char_on_line(c, forward);
+                }
+            }
+            KeyCode::Char(',') => {
+                // Repeat last find in opposite direction
+                if let Some((c, forward)) = self.last_find {
+                    self.find_char_on_line(c, !forward);
+                }
+            }
             
             // Mode switching
             KeyCode::Char('i') => self.mode = Mode::Insert,
@@ -881,6 +911,30 @@ impl Editor {
         
         self.cursor.clamp(&self.buffer);
         self.message = Some("Deleted".to_string());
+    }
+
+    /// Find and move to character on current line
+    fn find_char_on_line(&mut self, target: char, forward: bool) {
+        let line = self.buffer.line(self.cursor.line);
+        let chars: Vec<char> = line.chars().collect();
+        
+        if forward {
+            // Search forward from cursor
+            for i in (self.cursor.col + 1)..chars.len() {
+                if chars[i] == target {
+                    self.cursor.col = i;
+                    return;
+                }
+            }
+        } else {
+            // Search backward from cursor
+            for i in (0..self.cursor.col).rev() {
+                if chars[i] == target {
+                    self.cursor.col = i;
+                    return;
+                }
+            }
+        }
     }
 
     /// Find the matching bracket for the character under cursor
