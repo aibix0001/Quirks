@@ -104,6 +104,11 @@ impl Buffer {
         self.rope.len_bytes() == 0
     }
 
+    /// Get the full content as a String
+    pub fn content(&self) -> String {
+        self.rope.to_string()
+    }
+
     /// Get the length of a line in grapheme clusters
     pub fn line_len(&self, line_idx: usize) -> usize {
         if line_idx >= self.rope.len_lines() {

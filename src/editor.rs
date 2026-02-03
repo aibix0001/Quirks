@@ -886,6 +886,18 @@ impl Editor {
                 // Placeholder for marks
                 self.message = Some("Marks not yet implemented".to_string());
             }
+            "stats" | "wc" => {
+                // Word count and statistics
+                let content = self.buffer.content();
+                let lines = self.buffer.line_count();
+                let chars = content.chars().count();
+                let words = content.split_whitespace().count();
+                let bytes = content.len();
+                self.message = Some(format!(
+                    "{} lines, {} words, {} chars, {} bytes",
+                    lines, words, chars, bytes
+                ));
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
