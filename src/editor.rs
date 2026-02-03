@@ -665,6 +665,34 @@ impl Editor {
                 }
             }
             
+            // Page up (Ctrl+U)
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = self.viewport_height / 2;
+                self.cursor.line = self.cursor.line.saturating_sub(half_page);
+                self.ensure_cursor_visible();
+            }
+            
+            // Page down (Ctrl+D)
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = self.viewport_height / 2;
+                let max_line = self.buffer.line_count().saturating_sub(1);
+                self.cursor.line = (self.cursor.line + half_page).min(max_line);
+                self.ensure_cursor_visible();
+            }
+            
+            // Full page up (Ctrl+B)
+            KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.cursor.line = self.cursor.line.saturating_sub(self.viewport_height);
+                self.ensure_cursor_visible();
+            }
+            
+            // Full page down (Ctrl+F)
+            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let max_line = self.buffer.line_count().saturating_sub(1);
+                self.cursor.line = (self.cursor.line + self.viewport_height).min(max_line);
+                self.ensure_cursor_visible();
+            }
+            
             // Visual modes
             KeyCode::Char('v') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.selection = Some(Selection::new(VisualMode::Char, self.cursor.line, self.cursor.col));
