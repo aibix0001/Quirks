@@ -162,3 +162,36 @@ impl History {
         self.redo_stack.clear();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ropey::Rope;
+
+    #[test]
+    fn test_history_new() {
+        let history = History::new();
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn test_history_clear() {
+        let mut history = History::new();
+        let rope = Rope::from_str("test");
+        history.init(&rope, 0, 0);
+        let rope2 = Rope::from_str("test2");
+        history.record(&rope2, 0, 1);
+        // After clear, no undo should be possible
+        history.clear();
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn test_undo_redo_count() {
+        let history = History::new();
+        assert_eq!(history.undo_count(), 0);
+        assert_eq!(history.redo_count(), 0);
+    }
+}
