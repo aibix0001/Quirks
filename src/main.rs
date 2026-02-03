@@ -7,6 +7,7 @@ mod buffer;
 mod cursor;
 mod buffer_manager;
 mod editor;
+mod gpu_info;
 mod history;
 mod mode;
 mod register;

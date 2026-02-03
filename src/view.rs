@@ -39,11 +39,11 @@ pub fn render(frame: &mut Frame, editor: &Editor) {
 fn render_editor_area(frame: &mut Frame, editor: &Editor, area: Rect) {
     let buffer = editor.buffer();
     let scroll_offset = editor.scroll_offset();
-    
+
     // Calculate line number width
     let total_lines = buffer.line_count();
     let line_num_width = total_lines.to_string().len().max(2) as u16;
-    
+
     // Split into line numbers and content
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -81,21 +81,21 @@ fn render_editor_area(frame: &mut Frame, editor: &Editor, area: Rect) {
     } else {
         Vec::new()
     };
-    
+
     let mut content_lines: Vec<Line> = Vec::new();
     for i in 0..area.height as usize {
         let line_idx = scroll_offset + i;
         if line_idx < total_lines {
             let line_content = buffer.line(line_idx);
             let syntax_highlights = highlighter.highlight_line(&line_content);
-            
+
             // Get search matches for this line
             let line_search_matches: Vec<&SearchMatch> = search_matches
                 .iter()
                 .filter(|m| m.line == line_idx)
                 .copied()
                 .collect();
-            
+
             let spans = apply_all_highlights(&line_content, line_idx, &syntax_highlights, &line_search_matches, selection);
             content_lines.push(Line::from(spans));
         } else {
@@ -111,7 +111,7 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
     let buffer = editor.buffer();
     let cursor = editor.cursor();
     let mode = editor.mode();
-    
+
     // Mode indicator
     let mode_style = match mode {
         Mode::Normal => Style::default().bg(Color::Blue).fg(Color::White),
@@ -121,7 +121,7 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         Mode::Visual | Mode::VisualLine | Mode::VisualBlock => Style::default().bg(Color::Cyan).fg(Color::Black),
     };
     let mode_span = Span::styled(format!(" {} ", mode.display()), mode_style);
-    
+
     // File name
     let file_name = buffer
         .file_name()
@@ -132,22 +132,33 @@ fn render_status_line(frame: &mut Frame, editor: &Editor, area: Rect) {
         format!(" {}{} ", file_name, modified),
         Style::default().fg(Color::White),
     );
-    
+
     // Position
     let pos_span = Span::styled(
         format!(" {}:{} ", cursor.line + 1, cursor.col + 1),
         Style::default().fg(Color::DarkGray),
     );
-    
+
     // Build status line
     let left = vec![mode_span, file_span];
-    let right = vec![pos_span];
-    
+    let mut right = vec![pos_span];
+    // GPU usage display
+    let gpu_usage = if let Some(usage) = editor.gpu_info().get_usage() {
+        format!(" GPU: {}%", usage)
+    } else {
+        " GPU: N/A".to_string()
+    };
+    let gpu_span = Span::styled(
+        gpu_usage,
+        Style::default().fg(Color::Yellow),
+    );
+    right.push(gpu_span);
+
     let status = Line::from(left);
     let status_widget = Paragraph::new(status)
         .style(Style::default().bg(Color::DarkGray));
     frame.render_widget(status_widget, area);
-    
+
     // Right-aligned position (render separately)
     let right_status = Line::from(right);
     let right_widget = Paragraph::new(right_status)
@@ -171,7 +182,7 @@ fn render_command_line(frame: &mut Frame, editor: &Editor, area: Rect) {
     } else {
         String::new()
     };
-    
+
     let widget = Paragraph::new(content);
     frame.render_widget(widget, area);
 }
@@ -185,7 +196,7 @@ fn apply_all_highlights(
     selection: Option<&Selection>,
 ) -> Vec<Span<'static>> {
     let chars: Vec<char> = line.chars().collect();
-    
+
     if syntax_highlights.is_empty() && search_matches.is_empty() && selection.is_none() {
         return vec![Span::raw(line.to_string())];
     }
@@ -196,13 +207,13 @@ fn apply_all_highlights(
     while i < chars.len() {
         // Check if we're in a selection
         let in_selection = selection.map_or(false, |s| s.contains(line_idx, i));
-        
+
         // Check if we're in a search match
         let search_match = search_matches.iter().find(|m| i >= m.start_col && i < m.end_col);
-        
+
         // Check if we're in a syntax highlight
         let syntax_hl = syntax_highlights.iter().find(|h| i >= h.start && i < h.end);
-        
+
         if in_selection {
             // Selection - find extent
             let mut end = i + 1;
@@ -210,7 +221,7 @@ fn apply_all_highlights(
                 end += 1;
             }
             let text: String = chars[i..end].iter().collect();
-            
+
             // Apply syntax color on selection background
             let fg = syntax_hl.map(|h| h.style.fg.unwrap_or(Color::White)).unwrap_or(Color::White);
             spans.push(Span::styled(
@@ -251,7 +262,7 @@ fn apply_all_highlights(
                 .flatten()
                 .min()
                 .unwrap_or(end);
-            
+
             let text: String = chars[i..actual_end].iter().collect();
             spans.push(Span::styled(text, sh.style));
             i = actual_end;
@@ -276,7 +287,7 @@ fn apply_all_highlights(
                 .into_iter()
                 .flatten()
                 .min();
-            
+
             let end = next.unwrap_or(chars.len()).min(chars.len());
             let text: String = chars[i..end].iter().collect();
             spans.push(Span::raw(text));
@@ -301,14 +312,14 @@ fn calculate_cursor_position(editor: &Editor, editor_area: Rect) -> (u16, u16) {
     let cursor = editor.cursor();
     let scroll_offset = editor.scroll_offset();
     let buffer = editor.buffer();
-    
+
     // Calculate line number width
     let total_lines = buffer.line_count();
     let line_num_width = total_lines.to_string().len().max(2) as u16 + 1;
-    
+
     let screen_line = cursor.line.saturating_sub(scroll_offset) as u16;
     let screen_col = cursor.col as u16 + line_num_width;
-    
+
     (
         editor_area.x + screen_col.min(editor_area.width - 1),
         editor_area.y + screen_line.min(editor_area.height - 1),

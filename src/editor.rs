@@ -7,6 +7,7 @@ use crate::register::{Registers, RegisterContent};
 use crate::search::{Search, SearchDirection};
 use crate::selection::{Selection, VisualMode};
 use crate::syntax::Highlighter;
+use crate::gpu_info::GpuInfo;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use regex;
@@ -45,6 +46,8 @@ pub struct Editor {
     pending_g: bool,
     /// Buffer manager for multiple buffers
     buffer_manager: crate::buffer_manager::BufferManager,
+    /// GPU info provider
+    gpu_info: GpuInfo,
 }
 
 impl Default for Editor {
@@ -72,6 +75,7 @@ impl Editor {
             numeric_prefix: String::new(),
             pending_g: false,
             buffer_manager: crate::buffer_manager::BufferManager::new(),
+            gpu_info: GpuInfo::new(),
         }
     }
 
@@ -93,6 +97,11 @@ impl Editor {
             .unwrap_or_default();
         self.message = Some(format!("Opened: {}{}", path, syntax_info));
         Ok(())
+    }
+
+    /// Get a reference to the GPU info provider
+    pub fn gpu_info(&self) -> &GpuInfo {
+        &self.gpu_info
     }
 
     /// Handle a key event, returns true if editor should quit
