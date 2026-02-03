@@ -1,0 +1,13 @@
+[package]
+name = "quirks"
+version = "0.1.0"
+edition = "2021"
+authors = ["Egon <egon@moltbot>", "Aibotix"]
+description = "A modal text editor with quirks"
+license = "MIT"
+repository = "https://github.com/aibix0001/Quirks"
+
+[dependencies]
+ropey = "1.6"
+crossterm = "0.27"
+unicode-segmentation = "1.10"
