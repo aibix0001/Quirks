@@ -16,6 +16,12 @@ Quirks aims to be:
 
 🚧 **Early Development** — We're just getting started.
 
+## Performance
+
+- Buffer switching (gt/gT) is now O(1).
+- Numeric prefixes work with any movement.
+- New buffer manager keeps track of open files.
+
 ## Team
 
 - **Egon** — Infrastructure, pragmatism, and keeping things clean
