@@ -323,6 +323,25 @@ impl Editor {
                 self.pending_op = Some('r');
             }
             
+            // Toggle case (~)
+            KeyCode::Char('~') => {
+                let line_len = self.buffer.line_len(self.cursor.line);
+                if self.cursor.col < line_len {
+                    self.buffer.checkpoint(self.cursor.line, self.cursor.col);
+                    if let Some(c) = self.buffer.char_at(self.cursor.line, self.cursor.col) {
+                        let toggled = if c.is_uppercase() {
+                            c.to_lowercase().to_string()
+                        } else {
+                            c.to_uppercase().to_string()
+                        };
+                        let pos = self.cursor.byte_offset(&self.buffer);
+                        self.buffer.delete(pos, pos + c.len_utf8());
+                        self.buffer.insert(pos, &toggled);
+                        self.cursor.move_right(&self.buffer);
+                    }
+                }
+            }
+            
             // Paste after (p)
             KeyCode::Char('p') => {
                 if let Some(content) = self.registers.get_unnamed() {
