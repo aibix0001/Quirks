@@ -204,8 +204,36 @@ impl Editor {
             KeyCode::Char('$') => self.cursor.move_to_line_end(&self.buffer),
             
             // Buffer start/end
-            KeyCode::Char('g') => self.cursor.move_to_buffer_start(),
+            KeyCode::Char('g') => {
+                if self.pending_g {
+                    // 'gg' - move to buffer start
+                    self.cursor.move_to_buffer_start();
+                    self.pending_g = false;
+                } else {
+                    // Set pending_g for next character (gt, gT, gg)
+                    self.pending_g = true;
+                    return false;
+                }
+            }
             KeyCode::Char('G') => self.cursor.move_to_buffer_end(&self.buffer),
+            
+            // Tab navigation (gt/gT when pending_g)
+            KeyCode::Char('t') if self.pending_g => {
+                self.buffer_manager.next_buffer();
+                self.buffer = self.buffer_manager.current_buffer().clone();
+                self.cursor = Cursor::new();
+                self.scroll_offset = 0;
+                self.message = Some("Switched to next buffer".to_string());
+                self.pending_g = false;
+            }
+            KeyCode::Char('T') if self.pending_g => {
+                self.buffer_manager.prev_buffer();
+                self.buffer = self.buffer_manager.current_buffer().clone();
+                self.cursor = Cursor::new();
+                self.scroll_offset = 0;
+                self.message = Some("Switched to previous buffer".to_string());
+                self.pending_g = false;
+            }
             
             // Match bracket (%)
             KeyCode::Char('%') => {
@@ -762,6 +790,47 @@ impl Editor {
                     }
                     Err(e) => {
                         self.message = Some(format!("Error opening file: {}", e));
+                    }
+                }
+            }
+            "ls" | "buffers" => {
+                // List all open buffers
+                self.message = Some("Buffer list printed to status".to_string());
+                // In a real implementation, we'd show a buffer list
+            }
+            _ if cmd.starts_with("b ") => {
+                let buf_num_str = cmd.strip_prefix("b ").unwrap().trim();
+                if let Ok(idx) = buf_num_str.parse::<usize>() {
+                    match self.buffer_manager.switch_to(idx) {
+                        Ok(_) => {
+                            self.buffer = self.buffer_manager.current_buffer().clone();
+                            self.cursor = Cursor::new();
+                            self.scroll_offset = 0;
+                            self.message = Some(format!("Switched to buffer {}", idx));
+                        }
+                        Err(e) => {
+                            self.message = Some(format!("Error: {}", e));
+                        }
+                    }
+                } else {
+                    self.message = Some("Usage: :b <buffer_number>".to_string());
+                }
+            }
+            _ if cmd.starts_with("bd") => {
+                // Close current buffer
+                match self.buffer_manager.close_current() {
+                    Ok(_) => {
+                        if self.buffer_manager.has_buffers() {
+                            self.buffer = self.buffer_manager.current_buffer().clone();
+                        } else {
+                            self.buffer = Buffer::new();
+                        }
+                        self.cursor = Cursor::new();
+                        self.scroll_offset = 0;
+                        self.message = Some("Buffer closed".to_string());
+                    }
+                    Err(e) => {
+                        self.message = Some(format!("Error: {}", e));
                     }
                 }
             }

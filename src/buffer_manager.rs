@@ -62,4 +62,14 @@ impl BufferManager {
         }
         Ok(())
     }
+
+    /// Check if there are open buffers
+    pub fn has_buffers(&self) -> bool {
+        !self.buffers.is_empty()
+    }
+
+    /// Get count of open buffers
+    pub fn buffer_count(&self) -> usize {
+        self.buffers.len()
+    }
 }
