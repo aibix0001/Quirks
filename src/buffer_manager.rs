@@ -33,6 +33,24 @@ impl BufferManager {
         Ok(())
     }
 
+    /// Switch to next buffer (wrap around)
+    pub fn next_buffer(&mut self) {
+        if !self.buffers.is_empty() {
+            self.current = (self.current + 1) % self.buffers.len();
+        }
+    }
+
+    /// Switch to previous buffer (wrap around)
+    pub fn prev_buffer(&mut self) {
+        if !self.buffers.is_empty() {
+            if self.current == 0 {
+                self.current = self.buffers.len() - 1;
+            } else {
+                self.current -= 1;
+            }
+        }
+    }
+
     /// Close current buffer and remove it
     pub fn close_current(&mut self) -> anyhow::Result<()> {
         if self.buffers.is_empty() {

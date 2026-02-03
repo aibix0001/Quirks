@@ -20,6 +20,7 @@ struct Snapshot {
 }
 
 /// Undo/Redo history manager
+#[derive(Clone)]
 pub struct History {
     /// Past states (for undo)
     undo_stack: Vec<Snapshot>,

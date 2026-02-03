@@ -13,6 +13,7 @@ use std::path::PathBuf;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A text buffer backed by a rope data structure
+#[derive(Clone)]
 pub struct Buffer {
     /// The text content
     rope: Rope,

@@ -13,7 +13,7 @@ use regex;
 
 /// The main editor state
 pub struct Editor {
-    /// Current buffer
+    /// Current buffer (clone of buffer_manager current)
     buffer: Buffer,
     /// Cursor position
     cursor: Cursor,
@@ -41,6 +41,8 @@ pub struct Editor {
     last_find: Option<(char, bool)>,  // (char, forward)
     /// Numeric prefix for commands (e.g., 5j, 3w)
     numeric_prefix: String,
+    /// Pending 'g' command (for gg, gt, gT)
+    pending_g: bool,
     /// Buffer manager for multiple buffers
     buffer_manager: crate::buffer_manager::BufferManager,
 }
@@ -68,13 +70,16 @@ impl Editor {
             selection: None,
             last_find: None,
             numeric_prefix: String::new(),
+            pending_g: false,
             buffer_manager: crate::buffer_manager::BufferManager::new(),
         }
     }
 
     /// Open a file in the editor
     pub fn open_file(&mut self, path: &str) -> Result<()> {
-        self.buffer = Buffer::from_file(path)?;
+        // Open file via buffer manager
+        self.buffer_manager.open_file(path)?;
+        self.buffer = self.buffer_manager.current_buffer().clone();
         self.cursor = Cursor::new();
         self.scroll_offset = 0;
         
