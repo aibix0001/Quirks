@@ -39,6 +39,8 @@ pub struct Editor {
     selection: Option<Selection>,
     /// Last find character and direction (for f, F, ; commands)
     last_find: Option<(char, bool)>,  // (char, forward)
+    /// Numeric prefix for commands (e.g., 5j, 3w)
+    numeric_prefix: String,
 }
 
 impl Default for Editor {
@@ -63,6 +65,7 @@ impl Editor {
             pending_op: None,
             selection: None,
             last_find: None,
+            numeric_prefix: String::new(),
         }
     }
 
@@ -129,17 +132,63 @@ impl Editor {
         }
 
         match key.code {
+            // Numeric prefix (1-9, but skip 0 as it's line start)
+            KeyCode::Char(c @ '1'..='9') => {
+                self.numeric_prefix.push(c);
+                return false;
+            }
+            KeyCode::Char('0') if !self.numeric_prefix.is_empty() => {
+                self.numeric_prefix.push('0');
+                return false;
+            }
+            
             // Movement
-            KeyCode::Char('h') | KeyCode::Left => self.cursor.move_left(&self.buffer),
+            KeyCode::Char('h') | KeyCode::Left => {
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_left(&self.buffer);
+                }
+                self.numeric_prefix.clear();
+            }
             KeyCode::Char('j') | KeyCode::Down => {
-                self.cursor.move_down(&self.buffer);
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_down(&self.buffer);
+                }
                 self.ensure_cursor_visible();
+                self.numeric_prefix.clear();
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                self.cursor.move_up(&self.buffer);
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_up(&self.buffer);
+                }
                 self.ensure_cursor_visible();
+                self.numeric_prefix.clear();
             }
-            KeyCode::Char('l') | KeyCode::Right => self.cursor.move_right(&self.buffer),
+            KeyCode::Char('l') | KeyCode::Right => {
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_right(&self.buffer);
+                }
+                self.numeric_prefix.clear();
+            }
             
             // Line start/end
             KeyCode::Char('0') => self.cursor.move_to_line_start(),
@@ -160,9 +209,39 @@ impl Editor {
             }
             
             // Word motions
-            KeyCode::Char('w') => self.cursor.move_word_forward(&self.buffer),
-            KeyCode::Char('b') => self.cursor.move_word_backward(&self.buffer),
-            KeyCode::Char('e') => self.cursor.move_word_end(&self.buffer),
+            KeyCode::Char('w') => {
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_word_forward(&self.buffer);
+                }
+                self.numeric_prefix.clear();
+            }
+            KeyCode::Char('b') => {
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_word_backward(&self.buffer);
+                }
+                self.numeric_prefix.clear();
+            }
+            KeyCode::Char('e') => {
+                let count = if self.numeric_prefix.is_empty() {
+                    1
+                } else {
+                    self.numeric_prefix.parse().unwrap_or(1)
+                };
+                for _ in 0..count {
+                    self.cursor.move_word_end(&self.buffer);
+                }
+                self.numeric_prefix.clear();
+            }
             
             // Find character on line
             KeyCode::Char('f') => self.pending_op = Some('f'),
@@ -546,7 +625,10 @@ impl Editor {
                 self.mode = Mode::VisualBlock;
             }
             
-            _ => {}
+            _ => {
+                // Clear numeric prefix for commands that don't use it
+                self.numeric_prefix.clear();
+            }
         }
         false
     }
