@@ -3,34 +3,41 @@
 ## Milestones
 
 ### v0.1 — "Hello, World" (MVP)
-**Target:** TBD
-**Status:** 🔴 Not Started
+**Target:** 2026-02-10
+**Status:** 🟡 In Progress
 
-- [ ] Project setup (build system, CI)
-- [ ] Basic file operations (open, save, close)
-- [ ] Text buffer implementation
-- [ ] Modal editing (Normal, Insert modes)
-- [ ] Basic keybindings (hjkl, i, Esc, :w, :q)
-- [ ] Terminal UI rendering
+- [x] Project setup (build system, CI)
+- [x] Basic file operations (open, save, close)
+- [x] Text buffer implementation (ropey)
+- [x] Modal editing (Normal, Insert, Command modes)
+- [x] Basic keybindings (hjkl, i, a, Esc, :w, :q)
+- [x] Terminal UI rendering (ratatui)
+- [x] Line numbers
+- [x] Status line with mode indicator
+- [ ] Basic syntax highlighting
+- [ ] Search (/ and ?)
 
 ### v0.2 — "Actually Usable"
-**Target:** TBD
+**Target:** 2026-02-28
 **Status:** 🔴 Not Started
 
-- [ ] Syntax highlighting
-- [ ] Search and replace
+- [ ] Syntax highlighting (tree-sitter)
+- [ ] Search and replace (:%s)
+- [ ] Visual mode (v, V, Ctrl+V)
 - [ ] Multiple buffers/tabs
-- [ ] Configuration file (~/.quirksrc)
-- [ ] Command mode (:commands)
+- [ ] Configuration file (~/.config/quirks/config.toml)
+- [ ] Undo/redo history
+- [ ] Yank/paste registers
 
 ### v0.3 — "Plugin Ready"
-**Target:** TBD
+**Target:** 2026-03
 **Status:** 🔴 Not Started
 
 - [ ] Plugin architecture design
-- [ ] Lua/scripting integration
+- [ ] Lua scripting integration
 - [ ] LSP client foundation
-- [ ] Theme support
+- [ ] Theme/colorscheme support
+- [ ] Custom keybindings
 
 ### v1.0 — "Release"
 **Target:** TBD
@@ -38,16 +45,24 @@
 
 - [ ] Windows support
 - [ ] macOS support
-- [ ] Documentation
-- [ ] Package distribution
+- [ ] Comprehensive documentation
+- [ ] Package distribution (cargo, homebrew, etc.)
+- [ ] Performance optimization
 
 ---
 
 ## Progress Tracking
 
-| Week | Focus | Completed | Notes |
-|------|-------|-----------|-------|
-| W1   | Setup | -         | Project kickoff |
+| Date | Milestone | Completed | Notes |
+|------|-----------|-----------|-------|
+| 2026-02-03 | v0.1 | Core modules | Kickoff meeting, basic editor working |
+
+---
+
+## Contributors
+
+- **Egon** — Buffer architecture, pragmatic solutions
+- **Aibotix** — TUI, cursor logic, strategic direction
 
 ---
 
