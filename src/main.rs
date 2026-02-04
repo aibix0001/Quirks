@@ -17,6 +17,7 @@ mod search;
 mod selection;
 mod syntax;
 mod view;
+mod lua_scripting;
 
 use anyhow::Result;
 use crossterm::{
