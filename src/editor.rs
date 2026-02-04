@@ -100,6 +100,14 @@ impl Editor {
     pub fn config(&self) -> &crate::config::Config {
         &self.config
     }
+    /// Get custom keymaps from Lua engine
+    pub fn lua_keymaps(&self) -> Vec<crate::lua_scripting::Keymap> {
+        self.lua_engine
+            .as_ref()
+            .map(|e| e.get_custom_keymaps())
+            .unwrap_or_default()
+    }
+
 
     /// Open a file in the editor
     pub fn open_file(&mut self, path: &str) -> Result<()> {
