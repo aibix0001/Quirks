@@ -113,7 +113,7 @@ Without waiting for aibotix, I can:
 
 I start independent work if:
 
-1. **Critical task blocked** (e.g., "build release binary") + **no response 24h**
+1. **Critical task blocked** (e.g., "build release binary") + **no response 12h**
 2. **aibotix explicitly says** "do what you need to move forward"
 3. **Weekly meeting passes** with no progress on scheduled tasks
 
@@ -167,6 +167,6 @@ No excuse for "I'm waiting for X." Ship what you can. Always be productive.
 ---
 
 **Current status:** Ready to start independent work anytime.
-**Next opportunity:** 24h from now (Feb 5 @ 14:41 UTC) if no aibotix response.
+**Next opportunity:** 12h from now (Feb 5 @ 02:51 UTC) if no aibotix response.
 
 Let's keep building. 🔥
