@@ -86,6 +86,16 @@ impl Editor {
         }
     }
 
+    /// Initialize editor (load user config, etc.)
+    pub fn init(&mut self) {
+        // Load user Lua config
+        if let Some(ref engine) = self.lua_engine {
+            if let Err(e) = engine.load_user_config() {
+                self.message = Some(format!("Config error: {}", e));
+            }
+        }
+    }
+
     /// Get the editor configuration
     pub fn config(&self) -> &crate::config::Config {
         &self.config

@@ -42,6 +42,7 @@ fn main() -> Result<()> {
 
     // Create editor
     let mut editor = editor::Editor::new();
+    editor.init();
     if let Some(path) = file_path {
         editor.open_file(path)?;
     }
