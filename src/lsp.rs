@@ -387,7 +387,7 @@ impl Drop for LspClient {
 }
 
 /// Find the appropriate LSP server for a file
-pub fn server_for_file(path: &str, servers: &HashMap<String, LspServerConfig>) -> Option<&LspServerConfig> {
+pub fn server_for_file<'a>(path: &str, servers: &'a HashMap<String, LspServerConfig>) -> Option<&'a LspServerConfig> {
     let path = PathBuf::from(path);
     let ext = path.extension()?.to_str()?;
     

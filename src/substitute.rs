@@ -55,7 +55,7 @@ pub fn parse_substitute_command(cmd: &str) -> Option<(Option<Range>, String, Str
         (Some(Range::All), &cmd[1..])
     } else if cmd.starts_with('.') {
         (Some(Range::Current), &cmd[1..])
-    } else if let Some(stripped) = cmd.strip_prefix("s") {
+    } else if let Some(_stripped) = cmd.strip_prefix("s") {
         (Some(Range::Current), cmd)
     } else {
         (None, cmd)

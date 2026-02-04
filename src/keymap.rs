@@ -44,13 +44,13 @@ impl KeyCombo {
         for part in &parts {
             let part = part.trim();
             match part.to_lowercase().as_str() {
-                "ctrl" | "control" | "c" if parts.len() > 1 => {
+                "ctrl" | "control" if parts.len() > 1 => {
                     modifiers |= KeyModifiers::CONTROL;
                 }
-                "shift" | "s" if parts.len() > 1 => {
+                "shift" if parts.len() > 1 => {
                     modifiers |= KeyModifiers::SHIFT;
                 }
-                "alt" | "meta" | "m" | "a" if parts.len() > 1 => {
+                "alt" | "meta" if parts.len() > 1 => {
                     modifiers |= KeyModifiers::ALT;
                 }
                 _ => {
@@ -323,5 +323,81 @@ mod tests {
         
         let action = km.get(&KeyCombo::ctrl(KeyCode::Char('s')));
         assert_eq!(action, Some(&Action::Save));
+    }
+}
+
+/// Convert a Lua-style keymap string to a KeyCombo
+/// Supports: "<leader>w", "<C-s>", "<M-x>", "<S-Tab>", "j", etc.
+pub fn parse_vim_key(s: &str) -> Option<KeyCombo> {
+    let s = s.trim();
+    
+    // Handle <...> notation
+    if s.starts_with('<') && s.ends_with('>') {
+        let inner = &s[1..s.len()-1];
+        
+        // Handle modifier combinations like <C-s>, <M-x>, <S-Tab>
+        if inner.contains('-') {
+            let parts: Vec<&str> = inner.splitn(2, '-').collect();
+            if parts.len() == 2 {
+                let modifier_str = parts[0].to_uppercase();
+                let key_str = parts[1];
+                
+                let mut modifiers = KeyModifiers::NONE;
+                for c in modifier_str.chars() {
+                    match c {
+                        'C' => modifiers |= KeyModifiers::CONTROL,
+                        'S' => modifiers |= KeyModifiers::SHIFT,
+                        'M' | 'A' => modifiers |= KeyModifiers::ALT,
+                        _ => {}
+                    }
+                }
+                
+                let code = parse_key_code(key_str)?;
+                return Some(KeyCombo::new(code, modifiers));
+            }
+        }
+        
+        // Handle special keys like <CR>, <Esc>, <Tab>
+        match inner.to_lowercase().as_str() {
+            "cr" | "enter" | "return" => return Some(KeyCombo::plain(KeyCode::Enter)),
+            "esc" | "escape" => return Some(KeyCombo::plain(KeyCode::Esc)),
+            "tab" => return Some(KeyCombo::plain(KeyCode::Tab)),
+            "space" => return Some(KeyCombo::plain(KeyCode::Char(' '))),
+            "bs" | "backspace" => return Some(KeyCombo::plain(KeyCode::Backspace)),
+            "leader" => return Some(KeyCombo::plain(KeyCode::Char(' '))), // Space as leader
+            _ => {}
+        }
+    }
+    
+    // Plain key
+    if s.len() == 1 {
+        return Some(KeyCombo::plain(KeyCode::Char(s.chars().next()?)));
+    }
+    
+    // Fallback to existing parser
+    KeyCombo::parse(s)
+}
+
+#[cfg(test)]
+mod vim_key_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_vim_ctrl() {
+        let combo = parse_vim_key("<C-s>").unwrap();
+        assert_eq!(combo.code, KeyCode::Char('s'));
+        assert!(combo.modifiers.contains(KeyModifiers::CONTROL));
+    }
+
+    #[test]
+    fn test_parse_vim_cr() {
+        let combo = parse_vim_key("<CR>").unwrap();
+        assert_eq!(combo.code, KeyCode::Enter);
+    }
+
+    #[test]
+    fn test_parse_vim_plain() {
+        let combo = parse_vim_key("j").unwrap();
+        assert_eq!(combo.code, KeyCode::Char('j'));
     }
 }

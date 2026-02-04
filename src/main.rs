@@ -17,6 +17,11 @@ mod search;
 mod selection;
 mod syntax;
 mod view;
+mod keymap;
+mod lsp;
+mod plugin;
+mod theme;
+mod substitute;
 mod lua_scripting;
 
 use anyhow::Result;
