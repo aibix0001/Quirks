@@ -8,6 +8,7 @@ use crate::search::{Search, SearchDirection};
 use crate::selection::{Selection, VisualMode};
 use crate::syntax::Highlighter;
 use crate::gpu_info::GpuInfo;
+use crate::lua_scripting::LuaEngine;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use regex;
@@ -50,6 +51,8 @@ pub struct Editor {
     gpu_info: GpuInfo,
     /// Editor configuration
     config: crate::config::Config,
+    /// Lua scripting engine
+    lua_engine: Option<LuaEngine>,
 }
 
 impl Default for Editor {
@@ -79,6 +82,7 @@ impl Editor {
             buffer_manager: crate::buffer_manager::BufferManager::new(),
             gpu_info: GpuInfo::new(),
             config: crate::config::Config::load(),
+            lua_engine: LuaEngine::new().ok(),
         }
     }
 
@@ -876,6 +880,25 @@ impl Editor {
             "help" | "h" | "?" => {
                 self.mode = Mode::Help;
                 self.message = Some("Press q/Esc/Enter to close help".to_string());
+            }
+            _ if cmd.starts_with("lua ") => {
+                let script = cmd.strip_prefix("lua ").unwrap();
+                if let Some(ref engine) = self.lua_engine {
+                    match engine.execute(script) {
+                        Ok(()) => {
+                            // Check for messages from Lua
+                            for msg in engine.take_messages() {
+                                self.message = Some(msg);
+                            }
+                            if self.message.is_none() {
+                                self.message = Some("Lua executed".to_string());
+                            }
+                        }
+                        Err(e) => self.message = Some(format!("Lua error: {}", e)),
+                    }
+                } else {
+                    self.message = Some("Lua engine not available".to_string());
+                }
             }
             "version" | "ver" => {
                 self.message = Some("Quirks v0.3.1 - A modal text editor".to_string());
