@@ -1004,6 +1004,29 @@ impl Editor {
                     self.cursor.col + 1
                 ));
             }
+            "readonly" | "ro" => {
+                // Read-only mode toggle
+                self.message = Some("Read-only mode not yet implemented".to_string());
+            }
+            "modifiable" | "ma" => {
+                // Modifiable toggle
+                self.message = Some("Modifiable mode not yet implemented".to_string());
+            }
+            "list" => {
+                // Show whitespace
+                self.config.show_whitespace = !self.config.show_whitespace;
+                let status = if self.config.show_whitespace { "enabled" } else { "disabled" };
+                self.message = Some(format!("Whitespace display {}", status));
+            }
+            "nolist" => {
+                // Hide whitespace
+                self.config.show_whitespace = false;
+                self.message = Some("Whitespace display disabled".to_string());
+            }
+            "term" => {
+                // Open terminal (placeholder - future)
+                self.message = Some("Terminal not yet implemented".to_string());
+            }
             "set" => {
                 // Show current settings
                 self.message = Some(format!(
